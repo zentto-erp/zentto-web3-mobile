@@ -30,7 +30,7 @@ export default function MovementsPage() {
 
   return (
     <IonPage>
-      <ZenttoHeader title="Movimientos" />
+      <ZenttoHeader title="Historial" />
       <IonContent className="zt-page" fullscreen>
         <IonRefresher
           slot="fixed"

@@ -167,7 +167,7 @@ export default function HomePage() {
             onClick={() => history.push('/movements')}
           >
             <IonIcon slot="start" icon={swapHorizontalOutline} />
-            Ver movimientos
+            Ver historial
           </IonButton>
         </div>
       </IonContent>

@@ -14,10 +14,11 @@ import {
   homeOutline,
   paperPlaneOutline,
   qrCodeOutline,
-  swapHorizontalOutline,
+  timeOutline,
   compassOutline,
 } from 'ionicons/icons';
 
+import SettingsMenu from './components/SettingsMenu';
 import { useAuth } from './auth/AuthContext';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -71,12 +72,14 @@ export default function App() {
     );
   }
 
-  // Con sesión → app con bottom tabs.
+  // Con sesión → app con bottom tabs + side drawer de configuración.
   return (
     <IonApp>
       <IonReactRouter>
+        {/* Side drawer: hermano del contenido enrutado (contentId="main"). */}
+        <SettingsMenu />
         <IonTabs>
-          <IonRouterOutlet>
+          <IonRouterOutlet id="main">
             <Route exact path="/home" component={HomePage} />
             <Route exact path="/send" component={SendPage} />
             <Route exact path="/receive" component={ReceivePage} />
@@ -90,7 +93,7 @@ export default function App() {
             <Route render={() => <Redirect to="/home" />} />
           </IonRouterOutlet>
 
-          <IonTabBar slot="bottom">
+          <IonTabBar slot="bottom" className="zt-tabbar">
             <IonTabButton tab="home" href="/home">
               <IonIcon icon={homeOutline} />
               <IonLabel>Inicio</IonLabel>
@@ -104,8 +107,8 @@ export default function App() {
               <IonLabel>Recibir</IonLabel>
             </IonTabButton>
             <IonTabButton tab="movements" href="/movements">
-              <IonIcon icon={swapHorizontalOutline} />
-              <IonLabel>Movimientos</IonLabel>
+              <IonIcon icon={timeOutline} />
+              <IonLabel>Historial</IonLabel>
             </IonTabButton>
             <IonTabButton tab="explore" href="/explore">
               <IonIcon icon={compassOutline} />

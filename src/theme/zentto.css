@@ -47,11 +47,42 @@
   --ion-item-background: var(--zt-card);
   --ion-card-background: var(--zt-card);
   --ion-border-color: var(--zt-border);
+
+  /* Tipografía — escala legible tipo neobanco (Inter / system-ui). */
+  --zt-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
+  --ion-font-family: var(--zt-font);
+
+  /* Safe-area Android (gestos). Fallback a 0 si el WebView no la expone. */
+  --zt-safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+html,
 body {
+  font-family: var(--zt-font);
   background: var(--zt-bg);
   color: var(--zt-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── Tipografía / jerarquía ── */
+h1,
+h2,
+h3,
+h4 {
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+h3 {
+  font-size: 16px;
+  font-weight: 600;
 }
 
 /* ── utilidades ── */
@@ -94,10 +125,12 @@ body {
 }
 
 .zt-balance-amount {
-  font-size: 38px;
-  font-weight: 700;
+  font-size: 40px;
+  font-weight: 800;
   margin: 6px 0 2px;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
 }
 
 .zt-balance-sub {
@@ -138,19 +171,22 @@ body {
 .zt-card {
   background: var(--zt-card);
   border: 1px solid var(--zt-border);
-  border-radius: 16px;
+  border-radius: 18px;
   padding: 16px;
   margin-top: 16px;
+  box-shadow: 0 8px 24px -18px rgba(0, 0, 0, 0.7);
 }
 
 .zt-card h3 {
   margin: 0 0 4px;
-  font-size: 15px;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .zt-muted {
   color: var(--zt-text-dim);
   font-size: 13px;
+  line-height: 1.4;
 }
 
 .zt-mono {
@@ -267,4 +303,214 @@ body {
   border-radius: 999px;
   border: 1px solid currentColor;
   opacity: 0.95;
+}
+
+/* ════════════════════════════════════════════════════════════
+   HEADER — título claro + avatar a la derecha
+   ════════════════════════════════════════════════════════════ */
+.zt-header ion-toolbar {
+  --min-height: 56px;
+  --padding-top: 4px;
+  --padding-bottom: 4px;
+}
+
+.zt-header ion-title {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.zt-header ion-menu-button,
+.zt-header ion-button {
+  --color: var(--zt-text);
+  font-size: 26px;
+}
+
+/* ════════════════════════════════════════════════════════════
+   BOTTOM TAB BAR — etiquetas que NUNCA se cortan (probado ~360px)
+   ════════════════════════════════════════════════════════════ */
+.zt-tabbar {
+  --background: var(--zt-bg-2);
+  border-top: 1px solid var(--zt-border);
+  /* Reservar la safe-area de gestos de Android sin empujar el contenido. */
+  padding-bottom: var(--zt-safe-bottom);
+  height: calc(58px + var(--zt-safe-bottom));
+  contain: none;
+}
+
+.zt-tabbar ion-tab-button {
+  --padding-start: 2px;
+  --padding-end: 2px;
+  min-width: 0; /* permite que 5 tabs quepan sin desbordar */
+  max-width: 20%;
+}
+
+.zt-tabbar ion-tab-button ion-icon {
+  font-size: 22px;
+  margin-bottom: 2px;
+}
+
+/* Etiqueta corta, una sola línea, sin overflow ni elipsis recortada. */
+.zt-tabbar ion-tab-button ion-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  max-width: 100%;
+  margin-top: 0;
+}
+
+/* En pantallas muy estrechas, apretar un poco la tipografía. */
+@media (max-width: 360px) {
+  .zt-tabbar ion-tab-button ion-label {
+    font-size: 9.5px;
+  }
+  .zt-tabbar ion-tab-button ion-icon {
+    font-size: 21px;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   SEGMENTS — scrollable, etiqueta legible sin truncar
+   ════════════════════════════════════════════════════════════ */
+ion-segment {
+  --background: var(--zt-card-2);
+  border-radius: 12px;
+  padding: 3px;
+}
+
+ion-segment-button {
+  --background-checked: var(--zt-indigo);
+  --color: var(--zt-text-dim);
+  --color-checked: #fff;
+  --indicator-color: var(--zt-indigo);
+  --border-radius: 10px;
+  min-height: 38px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+ion-segment-button ion-label {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* ════════════════════════════════════════════════════════════
+   SIDE DRAWER — configuración / perfil
+   ════════════════════════════════════════════════════════════ */
+.zt-menu {
+  --width: 312px;
+  --max-width: 86vw;
+  --background: var(--zt-bg-2);
+}
+
+.zt-menu ion-toolbar {
+  --background: var(--zt-bg-2);
+  --border-width: 0;
+  --min-height: 0;
+}
+
+.zt-menu-content {
+  --background: var(--zt-bg);
+}
+
+.zt-menu-profile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 18px 18px;
+}
+
+.zt-menu-avatar {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 22px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--zt-indigo) 0%, var(--zt-cyan) 100%);
+  box-shadow: 0 10px 24px -10px rgba(99, 102, 241, 0.7);
+}
+
+.zt-menu-id {
+  min-width: 0;
+}
+
+.zt-menu-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--zt-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zt-menu-email {
+  font-size: 13px;
+  color: var(--zt-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zt-menu-list {
+  background: transparent;
+  padding-top: 4px;
+}
+
+.zt-menu-list ion-list-header {
+  --color: var(--zt-text-dim);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  min-height: 34px;
+}
+
+.zt-menu-list ion-item {
+  --background: transparent;
+  --border-color: var(--zt-border);
+  --min-height: 52px;
+  font-size: 15px;
+}
+
+.zt-menu-list ion-item ion-icon[slot='start'] {
+  margin-right: 14px;
+  font-size: 20px;
+}
+
+.zt-menu-icon-dim {
+  color: var(--zt-text-dim);
+}
+
+.zt-menu-note {
+  font-size: 13px;
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--zt-text-dim);
+}
+
+.zt-menu-chevron {
+  color: var(--zt-text-dim);
+  font-size: 16px;
+}
+
+.zt-menu-footer {
+  padding: 18px 0 calc(18px + var(--zt-safe-bottom));
+}
+
+.zt-menu-logout {
+  --background: transparent;
+  font-weight: 600;
 }

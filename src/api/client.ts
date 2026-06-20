@@ -53,8 +53,22 @@ interface RequestOptions {
   /** Si false, NO se intenta refresh+retry ante 401 (usado en el sondeo inicial de /auth/me). */
   retryOnAuth?: boolean;
   signal?: AbortSignal;
+  /** Header Idempotency-Key (UUID por intento) para mutaciones que mueven saldo. */
+  idempotencyKey?: string;
   /** Evita el bucle: el propio refresh no debe re-disparar refresh. */
   _isRetry?: boolean;
+}
+
+/** UUID v4 — usa crypto.randomUUID cuando está disponible, con fallback. */
+export function newIdempotencyKey(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }
 
 let refreshInFlight: Promise<boolean> | null = null;
@@ -99,6 +113,7 @@ export async function apiFetch<T = unknown>(
   if (MUTATING.has(method)) {
     const csrf = await getCsrfToken();
     if (csrf) headers['x-csrf-token'] = csrf;
+    if (opts.idempotencyKey) headers['Idempotency-Key'] = opts.idempotencyKey;
   }
 
   let res: Response;

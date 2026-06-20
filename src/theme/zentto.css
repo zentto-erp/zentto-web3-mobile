@@ -256,3 +256,15 @@ body {
   text-decoration: none;
   font-weight: 600;
 }
+
+.zt-status-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  opacity: 0.95;
+}

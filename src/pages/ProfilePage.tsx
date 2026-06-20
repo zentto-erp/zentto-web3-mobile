@@ -19,7 +19,7 @@ export default function ProfilePage() {
 
   return (
     <IonPage>
-      <ZenttoHeader title="Perfil" />
+      <ZenttoHeader title="Perfil" showProfile={false} />
       <IonContent className="zt-page" fullscreen>
         <div className="zt-screen">
           <div style={{ textAlign: 'center', marginTop: 20 }}>

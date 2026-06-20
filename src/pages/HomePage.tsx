@@ -1,55 +1,75 @@
-import { useState } from 'react';
 import {
   IonButton,
   IonContent,
   IonIcon,
-  IonInput,
-  IonItem,
   IonPage,
   IonRefresher,
   IonRefresherContent,
   IonSpinner,
+  useIonToast,
 } from '@ionic/react';
 import { useHistory } from 'react-router-dom';
 import {
   paperPlaneOutline,
   qrCodeOutline,
+  swapHorizontalOutline,
+  addCircleOutline,
   walletOutline,
-  closeCircleOutline,
-  refreshOutline,
 } from 'ionicons/icons';
 import ZenttoHeader from '../components/ZenttoHeader';
-import { useLinkedAddress } from '../hooks/useWallet';
-import { useEvmAddress, useEvmInfo, isEvmUnavailable, isValidAddress } from '../hooks/useEvm';
-import { pickEth, pickUsdc } from '../api/evm';
+import { useEvmInfo, isEvmUnavailable } from '../hooks/useEvm';
+import { useAccountBalance, useCredit } from '../hooks/usePayments';
 import { useAuth } from '../auth/AuthContext';
+import { formatAmount } from '../lib/format';
+import type { AccountBalance } from '../api/types';
 
-function shorten(addr: string): string {
-  return addr.length > 12 ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : addr;
+// Asset principal mostrado en grande. Si no hay saldo aún, se usa USDT.
+const PRIMARY_ASSET = 'USDT';
+const FAUCET_ASSET = 'USDT';
+const FAUCET_AMOUNT = '100';
+
+function assetSymbol(asset: string): string {
+  return asset?.toUpperCase() === 'USDC' ? '$' : '₮';
 }
 
 export default function HomePage() {
   const history = useHistory();
   const { user } = useAuth();
-  const { address, link, unlink } = useLinkedAddress();
-  const [draft, setDraft] = useState('');
-  const [draftError, setDraftError] = useState<string | null>(null);
+  const [present] = useIonToast();
 
   const info = useEvmInfo();
-  const bal = useEvmAddress(address);
+  const balance = useAccountBalance();
+  const creditMut = useCredit();
 
-  const eth = pickEth(bal.data);
-  const usdc = pickUsdc(bal.data);
+  const balances: AccountBalance[] = balance.data ?? [];
+  const primary =
+    balances.find((b) => b.asset?.toUpperCase() === PRIMARY_ASSET) ?? balances[0];
+  const others = balances.filter((b) => b !== primary);
+
   const evmDown = info.isError && isEvmUnavailable(info.error);
+  const netLabel = evmDown
+    ? 'Red no disponible'
+    : info.data
+      ? `${(info.data.chainName as string) ?? info.data.network ?? 'Sepolia'}${
+          info.data.blockNumber ? ` · bloque ${info.data.blockNumber}` : ''
+        }`
+      : 'Conectando a la red…';
 
-  function handleLink() {
-    if (!isValidAddress(draft)) {
-      setDraftError('Address EVM inválida (formato 0x + 40 hex).');
-      return;
+  async function handleFaucet() {
+    try {
+      await creditMut.mutateAsync({ asset: FAUCET_ASSET, amount: FAUCET_AMOUNT });
+      present({
+        message: `+${FAUCET_AMOUNT} ${FAUCET_ASSET} acreditados`,
+        duration: 1600,
+        color: 'success',
+      });
+    } catch {
+      present({
+        message: 'No se pudo obtener saldo de prueba',
+        duration: 1800,
+        color: 'danger',
+      });
     }
-    setDraftError(null);
-    link(draft.trim());
-    setDraft('');
   }
 
   return (
@@ -59,7 +79,7 @@ export default function HomePage() {
         <IonRefresher
           slot="fixed"
           onIonRefresh={async (e) => {
-            await Promise.all([info.refetch(), bal.refetch()]);
+            await Promise.all([balance.refetch(), info.refetch()]);
             e.detail.complete();
           }}
         >
@@ -67,32 +87,26 @@ export default function HomePage() {
         </IonRefresher>
 
         <div className="zt-screen">
-          {/* Tarjeta de saldo */}
+          {/* Tarjeta de cuenta — saldo real del ledger */}
           <div className="zt-balance-card">
             <span className="zt-chip-net">
               <span className={`zt-dot${evmDown ? ' off' : ''}`} />
-              {evmDown
-                ? 'Red no disponible'
-                : info.data
-                  ? `${info.data.network ?? 'Sepolia'}${
-                      info.data.blockNumber ? ` · bloque ${info.data.blockNumber}` : ''
-                    }`
-                  : 'Conectando a la red…'}
+              {netLabel}
             </span>
-            <div className="zt-balance-label">Saldo disponible</div>
+            <div className="zt-balance-label">
+              {primary ? `${primary.asset} disponible` : 'Saldo disponible'}
+            </div>
             <div className="zt-balance-amount">
-              {address && bal.isLoading ? (
+              {balance.isLoading && !balance.data ? (
                 <IonSpinner name="dots" />
-              ) : usdc != null ? (
-                `$${formatAmount(usdc)}`
+              ) : primary ? (
+                `${assetSymbol(primary.asset)}${formatAmount(primary.available)}`
               ) : (
-                '$0.00'
+                '₮0.00'
               )}
             </div>
             <div className="zt-balance-sub">
-              {address
-                ? `${user?.displayName || user?.email || 'Mi cuenta'} · ${shorten(address)}`
-                : user?.displayName || user?.email || 'Mi cuenta'}
+              {user?.displayName || user?.email || 'Mi cuenta'}
             </div>
 
             <div className="zt-actions">
@@ -107,96 +121,74 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Vincular address para ver saldo real de testnet */}
-          {!address ? (
-            <div className="zt-card">
-              <h3>Conecta tu wallet de prueba</h3>
-              <p className="zt-muted">
-                Pega una address EVM (Sepolia testnet) para ver su saldo real de ETH y USDC. La
-                address es pública: no es una llave privada y no se guarda de forma permanente.
+          {/* Faucet dev */}
+          <IonButton
+            expand="block"
+            fill="outline"
+            style={{ marginTop: 16 }}
+            disabled={creditMut.isPending}
+            onClick={handleFaucet}
+          >
+            <IonIcon slot="start" icon={addCircleOutline} />
+            {creditMut.isPending ? 'Acreditando…' : `Obtener saldo de prueba (${FAUCET_AMOUNT} ${FAUCET_ASSET})`}
+          </IonButton>
+
+          {/* Lista de activos del ledger */}
+          <div className="zt-card">
+            <div className="zt-row" style={{ borderBottom: 'none', paddingBottom: 4 }}>
+              <h3 style={{ margin: 0 }}>Mis activos</h3>
+              <span className="zt-muted">disponible</span>
+            </div>
+
+            {balance.isError ? (
+              <p className="zt-muted" style={{ color: 'var(--zt-danger)' }}>
+                No se pudo cargar tu saldo. Desliza para reintentar.
               </p>
-              <IonItem
-                lines="none"
-                style={{ '--background': 'var(--zt-card-2)', borderRadius: 12, marginTop: 10 }}
-              >
-                <IonInput
-                  value={draft}
-                  onIonInput={(e) => setDraft(e.detail.value ?? '')}
-                  placeholder="0x…"
-                  className="zt-mono"
-                />
-              </IonItem>
-              {draftError && (
-                <p className="zt-muted" style={{ color: 'var(--zt-danger)' }}>
-                  {draftError}
-                </p>
-              )}
-              <IonButton expand="block" style={{ marginTop: 12 }} onClick={handleLink}>
-                <IonIcon slot="start" icon={walletOutline} />
-                Vincular address
-              </IonButton>
-            </div>
-          ) : (
-            <div className="zt-card">
-              <div className="zt-row">
-                <h3 style={{ margin: 0 }}>Activos</h3>
-                <IonButton fill="clear" size="small" onClick={() => bal.refetch()}>
-                  <IonIcon slot="icon-only" icon={refreshOutline} />
-                </IonButton>
+            ) : balances.length === 0 ? (
+              <div className="zt-empty" style={{ padding: '24px 8px' }}>
+                <IonIcon icon={walletOutline} />
+                <p>Aún no tienes saldo. Usa el faucet de prueba para empezar.</p>
               </div>
+            ) : (
+              <>
+                {primary && <AssetRow b={primary} />}
+                {others.map((b) => (
+                  <AssetRow key={b.asset} b={b} />
+                ))}
+              </>
+            )}
+          </div>
 
-              {bal.isError ? (
-                <p className="zt-muted" style={{ color: 'var(--zt-warning)' }}>
-                  {isEvmUnavailable(bal.error)
-                    ? 'El endpoint /evm/address aún no está disponible en el backend. Se mostrará el saldo cuando esté activo.'
-                    : 'No se pudo leer el saldo on-chain.'}
-                </p>
-              ) : (
-                <>
-                  <div className="zt-row">
-                    <div className="zt-token">
-                      <div className="zt-token-badge">$</div>
-                      <div>
-                        <div>USDC</div>
-                        <div className="zt-muted">USD Coin</div>
-                      </div>
-                    </div>
-                    <strong>{bal.isLoading ? '…' : formatAmount(usdc)}</strong>
-                  </div>
-                  <div className="zt-row">
-                    <div className="zt-token">
-                      <div className="zt-token-badge">Ξ</div>
-                      <div>
-                        <div>ETH</div>
-                        <div className="zt-muted">Sepolia testnet</div>
-                      </div>
-                    </div>
-                    <strong>{bal.isLoading ? '…' : formatAmount(eth, 6)}</strong>
-                  </div>
-                </>
-              )}
-
-              <IonButton
-                fill="clear"
-                color="medium"
-                size="small"
-                style={{ marginTop: 6 }}
-                onClick={unlink}
-              >
-                <IonIcon slot="start" icon={closeCircleOutline} />
-                Desvincular
-              </IonButton>
-            </div>
-          )}
+          {/* Acceso a movimientos */}
+          <IonButton
+            expand="block"
+            fill="clear"
+            style={{ marginTop: 8 }}
+            onClick={() => history.push('/movements')}
+          >
+            <IonIcon slot="start" icon={swapHorizontalOutline} />
+            Ver movimientos
+          </IonButton>
         </div>
       </IonContent>
     </IonPage>
   );
 }
 
-function formatAmount(v: string | null | undefined, maxFrac = 2): string {
-  if (v == null || v === '') return '0.00';
-  const n = Number(v);
-  if (Number.isNaN(n)) return v;
-  return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: maxFrac });
+function AssetRow({ b }: { b: AccountBalance }) {
+  const held = Number(b.held);
+  return (
+    <div className="zt-row">
+      <div className="zt-token">
+        <div className="zt-token-badge">{assetSymbol(b.asset)}</div>
+        <div>
+          <div>{b.asset}</div>
+          <div className="zt-muted">
+            {held > 0 ? `Retenido ${formatAmount(b.held)}` : 'Stablecoin'}
+          </div>
+        </div>
+      </div>
+      <strong>{formatAmount(b.available)}</strong>
+    </div>
+  );
 }

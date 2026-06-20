@@ -15,7 +15,7 @@ import {
   paperPlaneOutline,
   qrCodeOutline,
   swapHorizontalOutline,
-  personOutline,
+  compassOutline,
 } from 'ionicons/icons';
 
 import { useAuth } from './auth/AuthContext';
@@ -25,6 +25,7 @@ import HomePage from './pages/HomePage';
 import SendPage from './pages/SendPage';
 import ReceivePage from './pages/ReceivePage';
 import MovementsPage from './pages/MovementsPage';
+import ExplorePage from './pages/ExplorePage';
 import ProfilePage from './pages/ProfilePage';
 
 function FullScreenLoader() {
@@ -78,6 +79,7 @@ export default function App() {
             <Route exact path="/send" component={SendPage} />
             <Route exact path="/receive" component={ReceivePage} />
             <Route exact path="/movements" component={MovementsPage} />
+            <Route exact path="/explore" component={ExplorePage} />
             <Route exact path="/profile" component={ProfilePage} />
             <Route exact path="/login" render={() => <Redirect to="/home" />} />
             <Route exact path="/register" render={() => <Redirect to="/home" />} />
@@ -101,9 +103,9 @@ export default function App() {
               <IonIcon icon={swapHorizontalOutline} />
               <IonLabel>Movimientos</IonLabel>
             </IonTabButton>
-            <IonTabButton tab="profile" href="/profile">
-              <IonIcon icon={personOutline} />
-              <IonLabel>Perfil</IonLabel>
+            <IonTabButton tab="explore" href="/explore">
+              <IonIcon icon={compassOutline} />
+              <IonLabel>Explorar</IonLabel>
             </IonTabButton>
           </IonTabBar>
         </IonTabs>

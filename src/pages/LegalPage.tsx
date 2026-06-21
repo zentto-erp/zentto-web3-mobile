@@ -3,9 +3,11 @@ import { useParams } from 'react-router-dom';
 import ZenttoHeader from '../components/ZenttoHeader';
 import { LEGAL_DOCS, type LegalDoc } from '../lib/legalContent';
 
-/** Renderiza un documento legal (Términos / Privacidad / Responsabilidad) por slug. */
-export default function LegalPage() {
-  const { slug } = useParams<{ slug: string }>();
+/** Renderiza un documento legal por slug. Acepta `slug` por prop (desde
+ *  match.params) porque useParams no es fiable para rutas :param dentro de IonTabs. */
+export default function LegalPage({ slug: propSlug }: { slug?: string }) {
+  const params = useParams<{ slug: string }>();
+  const slug = (propSlug ?? params.slug ?? '').toLowerCase();
   const doc: LegalDoc | undefined = LEGAL_DOCS[slug as LegalDoc['slug']];
 
   if (!doc) {

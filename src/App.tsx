@@ -82,7 +82,11 @@ export default function App() {
           <IonRouterOutlet>
             <Route exact path="/login" component={LoginPage} />
             <Route exact path="/register" component={RegisterPage} />
-            <Route exact path="/legal/:slug" component={LegalPage} />
+            <Route
+              exact
+              path="/legal/:slug"
+              render={({ match }) => <LegalPage slug={match.params.slug} />}
+            />
             <Route render={() => <Redirect to="/login" />} />
           </IonRouterOutlet>
         </IonReactRouter>
@@ -109,7 +113,11 @@ export default function App() {
             <Route exact path="/security" component={SecurityPage} />
             <Route exact path="/payment-methods" component={PaymentMethodsPage} />
             <Route exact path="/app-security" component={AppSecurityPage} />
-            <Route exact path="/legal/:slug" component={LegalPage} />
+            <Route
+              exact
+              path="/legal/:slug"
+              render={({ match }) => <LegalPage slug={match.params.slug} />}
+            />
             <Route exact path="/login" render={() => <Redirect to="/home" />} />
             <Route exact path="/register" render={() => <Redirect to="/home" />} />
             <Route render={() => <Redirect to="/home" />} />

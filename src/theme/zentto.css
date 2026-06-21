@@ -67,6 +67,16 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* ── Densidad global (prueba de estilo): toda la UI ~30% más compacta ──
+   Un solo lever para evaluar el look denso (tipo Binance). Quitar la regla
+   o subir la variable a 1 revierte al tamaño original. */
+:root {
+  --zt-ui-scale: 0.7;
+}
+ion-app {
+  zoom: var(--zt-ui-scale);
+}
+
 /* ════════════════════════════════════════════════════════════
    CAJA NORMAL — Ionic fuerza MAYÚSCULAS en varios componentes.
    Se anula globalmente: botones, segmentos, tabs, list-headers, chips.

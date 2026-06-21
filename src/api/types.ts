@@ -68,6 +68,7 @@ export interface TransferInput {
   toEmail: string;
   asset: string;
   amount: string;
+  totpCode?: string; // segundo factor (Google Authenticator)
 }
 
 export interface CreditInput {
@@ -125,12 +126,54 @@ export interface TotpSetup {
 export interface DepositInfo {
   network: string;
   chainName: string;
+  chainId?: number;
+  nativeSymbol?: string;
   address: string;
   asset: string;
   token: string;
   explorerUrl: string;
   note: string;
   [k: string]: unknown;
+}
+
+/** Red cripto soportada (multi-red). `available:false` = próximamente (Tron/Stellar). */
+export interface NetworkInfo {
+  key: string;
+  family: 'evm' | 'tron' | 'stellar';
+  name: string;
+  chainId: number;
+  nativeSymbol: string;
+  asset: string;
+  explorerUrl: string;
+  isTestnet: boolean;
+  enabled: boolean;
+  available: boolean;
+}
+
+/** Tarifas de comisión de la plataforma (transparencia). */
+export interface FeeRates {
+  p2pPct: number;
+  depositPct: number;
+  withdrawPct: number;
+  withdrawNetworkFee: number;
+  minFee: number;
+}
+
+/** Dirección de retiro guardada (favorita), estilo Meru. */
+export interface WithdrawAddress {
+  id: string;
+  label: string;
+  network: string;
+  address: string;
+  asset: string;
+  createdAt: string | number;
+}
+
+export interface SaveWithdrawAddressInput {
+  label: string;
+  address: string;
+  network?: string;
+  asset?: string;
 }
 
 export interface ChainDeposit {
@@ -153,6 +196,8 @@ export interface WithdrawInput {
   amount: string;
   toAddress: string; // 0x… 40 hex
   totpCode: string; // 6 dígitos
+  network?: string; // red EVM de destino (default: primaria)
+  saveLabel?: string; // si viene, guarda la dirección como favorita
 }
 
 // ── EVM (endpoints públicos que leen Sepolia testnet real) ──
@@ -202,7 +247,34 @@ export interface EvmTx {
 
 export type P2pSide = 'buy' | 'sell';
 export type P2pOrderStatus = 'open' | 'taken' | 'cancelled' | string;
-export type P2pTradeStatus = 'pending' | 'completed' | 'cancelled' | string;
+export type P2pTradeStatus =
+  | 'pending'
+  | 'paid'
+  | 'completed'
+  | 'cancelled'
+  | 'disputed'
+  | 'expired'
+  | string;
+
+/** Referencia de mercado USDT/VES + banda anti-especulación permitida. */
+export interface MarketRate {
+  usdtVes: number | null;
+  source: string | null;
+  updatedAt: string | null;
+  bandPct: number;
+  min: number | null;
+  max: number | null;
+}
+
+/** Mensaje del chat de un trade. `attachment` es evidencia de pago (data URL imagen). */
+export interface P2pMessage {
+  id: string;
+  tradeId: string;
+  senderUserId: string;
+  body: string | null;
+  attachment: string | null;
+  createdAt: string | number;
+}
 
 /** Oferta del order book. `makerEmail` solo viene en el listado público. */
 export interface P2pOrder {
@@ -224,10 +296,25 @@ export interface P2pTrade {
   orderId: string;
   buyerUserId: string;
   sellerUserId: string;
+  buyerEmail?: string | null;
+  sellerEmail?: string | null;
   asset: string;
   amount: string;
   priceVes: string;
   status: P2pTradeStatus;
+  paidAt?: string | null;
+  paymentDeadline?: string | null;
+  releaseDeadline?: string | null;
+  disputeReason?: string | null;
+  disputeBy?: string | null;
+  resolution?: string | null;
+  /** Datos de pago de la contraparte — solo presentes tras tomar la oferta. */
+  paymentMethod?: string | null;
+  paymentDetails?: string | null;
+  /** Extensiones de tiempo usadas y restantes (reloj del escrow). */
+  extensions?: number;
+  maxExtensions?: number;
+  extensionsLeft?: number;
   createdAt: string | number;
   [k: string]: unknown;
 }
@@ -237,7 +324,8 @@ export interface CreateP2pOrderInput {
   asset: string; // USDT | USDC
   amount: string;
   priceVes: string;
-  paymentMethod?: string;
+  paymentMethod?: string; // etiqueta pública (banco/método)
+  paymentDetails?: string; // datos completos (privados, se revelan al tomar)
 }
 
 // ── Métodos de cobro (Pago Móvil / cuenta bancaria) ──

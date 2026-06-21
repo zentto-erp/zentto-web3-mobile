@@ -53,3 +53,37 @@ export async function tryNativeCamera(source: 'camera' | 'photos'): Promise<Capt
 export function revokePreview(img?: CapturedImage | null) {
   if (img?.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(img.previewUrl);
 }
+
+/**
+ * Comprime una imagen a un data URL JPEG redimensionado (máx. `maxSide` px) para
+ * subir evidencias de pago sin exceder el límite del backend (~2 MB base64).
+ * Cae a la lectura directa si el navegador no soporta canvas.
+ */
+export async function imageToCompressedDataUrl(blob: Blob, maxSide = 1280): Promise<string> {
+  try {
+    const bitmap = await createImageBitmap(blob);
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    const w = Math.round(bitmap.width * scale);
+    const h = Math.round(bitmap.height * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('no-canvas');
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close?.();
+    return canvas.toDataURL('image/jpeg', 0.72);
+  } catch {
+    return blobToDataUrl(blob);
+  }
+}
+
+/** Lee un Blob como data URL base64. */
+export function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}

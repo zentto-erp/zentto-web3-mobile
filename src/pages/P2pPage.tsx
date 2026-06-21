@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import {
   IonButton,
   IonContent,
@@ -12,10 +13,11 @@ import {
 import {
   addCircleOutline,
   swapHorizontalOutline,
-  copyOutline,
   closeCircleOutline,
   checkmarkCircleOutline,
+  chatbubbleEllipsesOutline,
   storefrontOutline,
+  timeOutline,
 } from 'ionicons/icons';
 import ZenttoHeader from '../components/ZenttoHeader';
 import PublishOfferModal from '../components/PublishOfferModal';
@@ -29,10 +31,10 @@ import {
   useP2pTrades,
   useTakeP2pOrder,
 } from '../hooks/useP2p';
+import { useStepUp } from '../hooks/useStepUp';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError } from '../api/client';
 import { formatAmount, formatDate, formatVes, shortenAddress } from '../lib/format';
-import { copyText } from '../lib/clipboard';
 import { tapLight, selection, notifySuccess, notifyError } from '../lib/haptics';
 import type { P2pOrder, P2pSide, P2pTrade } from '../api/types';
 
@@ -45,14 +47,19 @@ const ORDER_STATUS: Record<string, { label: string; color: string }> = {
 };
 
 const TRADE_STATUS: Record<string, { label: string; color: string }> = {
-  pending: { label: 'Pendiente', color: 'var(--zt-warning)' },
+  pending: { label: 'Esperando pago', color: 'var(--zt-warning)' },
+  paid: { label: 'Pago marcado', color: 'var(--zt-cyan)' },
   completed: { label: 'Completado', color: 'var(--zt-success)' },
   cancelled: { label: 'Cancelado', color: 'var(--zt-text-dim)' },
+  disputed: { label: 'En disputa', color: 'var(--zt-danger)' },
+  expired: { label: 'Expirado', color: 'var(--zt-text-dim)' },
 };
 
 export default function P2pPage() {
   const [present] = useIonToast();
   const { user } = useAuth();
+  const history = useHistory();
+  const stepUp = useStepUp();
 
   const [tab, setTab] = useState<Tab>('book');
   // En el libro elijo qué quiero hacer YO: comprar muestra ofertas de venta y viceversa.
@@ -75,11 +82,6 @@ export default function P2pPage() {
     () => (book.data ?? []).filter((o) => o.makerUserId !== user?.id),
     [book.data, user?.id],
   );
-
-  async function copy(text: string, label = 'Dato copiado') {
-    const ok = await copyText(text);
-    present({ message: ok ? label : 'No se pudo copiar', duration: 1200, color: ok ? 'success' : 'danger' });
-  }
 
   function errMsg(err: unknown, fallback: string) {
     return err instanceof ApiError ? err.message : fallback;
@@ -112,8 +114,10 @@ export default function P2pPage() {
 
   async function onConfirmTrade(id: string) {
     tapLight();
+    const totpCode = await stepUp('Autoriza la liberación de cripto');
+    if (!totpCode) return;
     try {
-      await confirmTradeMut.mutateAsync(id);
+      await confirmTradeMut.mutateAsync({ id, totpCode });
       notifySuccess();
       present({ message: 'Pago confirmado. Cripto liberado.', duration: 2000, color: 'success' });
     } catch (err) {
@@ -204,7 +208,6 @@ export default function P2pPage() {
                     key={o.id}
                     order={o}
                     intent={intent}
-                    onCopyMethod={(t) => copy(t, 'Datos de pago copiados')}
                     onTake={() => onTake(o)}
                     taking={takeMut.isPending}
                   />
@@ -307,6 +310,7 @@ export default function P2pPage() {
                     cancelling={cancelTradeMut.isPending}
                     onConfirm={() => onConfirmTrade(t.id)}
                     onCancel={() => onCancelTrade(t.id)}
+                    onOpen={() => history.push(`/p2p/trade/${t.id}`)}
                   />
                 ))
               )}
@@ -327,58 +331,102 @@ export default function P2pPage() {
   );
 }
 
+/** Divide la etiqueta pública de pago en chips ("Pago Móvil · Mercantil" → 2 chips). */
+function methodChips(label?: string | null): string[] {
+  if (!label) return [];
+  return label
+    .split(/[·,/|]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 4);
+}
+
 function P2pOrderCard({
   order,
   intent,
-  onCopyMethod,
   onTake,
   taking,
 }: {
   order: P2pOrder;
   intent: 'buy' | 'sell';
-  onCopyMethod: (text: string) => void;
   onTake: () => void;
   taking: boolean;
 }) {
-  const total = Number(order.amount) * Number(order.priceVes);
+  const initial = (order.makerEmail || order.makerUserId || '?').slice(0, 1).toUpperCase();
+  const chips = methodChips(order.paymentMethod);
+  const isBuy = intent === 'buy';
   return (
     <div className="zt-card">
-      <div className="zt-row" style={{ borderBottom: 'none' }}>
-        <span className="zt-token">
-          <span className="zt-token-badge">{order.asset.slice(0, 4)}</span>
-          <span>
-            <strong style={{ display: 'block' }}>
-              {formatAmount(order.amount, 6)} {order.asset}
-            </strong>
-            <span className="zt-muted">{order.makerEmail || shortenAddress(order.makerUserId)}</span>
+      {/* Anunciante */}
+      <div className="zt-row" style={{ borderBottom: 'none', alignItems: 'center', gap: 8 }}>
+        <span className="zt-token" style={{ alignItems: 'center' }}>
+          <span
+            className="zt-token-badge"
+            style={{ width: 30, height: 30, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--zt-indigo)', color: '#fff' }}
+          >
+            {initial}
+          </span>
+          <span className="zt-muted" style={{ fontSize: 13 }}>
+            {order.makerEmail || shortenAddress(order.makerUserId)}
           </span>
         </span>
-        <span style={{ textAlign: 'right' }}>
-          <strong style={{ display: 'block' }}>{formatVes(order.priceVes)}</strong>
-          <span className="zt-muted">por {order.asset}</span>
+      </div>
+
+      {/* Precio destacado (estilo Binance) */}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, margin: '6px 2px 2px' }}>
+        <span style={{ fontSize: 13, color: 'var(--zt-text-dim)' }}>Bs.</span>
+        <strong style={{ fontSize: 24, letterSpacing: '-0.5px' }}>
+          {formatAmount(order.priceVes, 2)}
+        </strong>
+        <span className="zt-muted" style={{ fontSize: 12.5 }}>/ {order.asset}</span>
+      </div>
+
+      <div className="zt-row" style={{ paddingTop: 6 }}>
+        <span className="zt-muted">Disponible</span>
+        <span>
+          {formatAmount(order.amount, 2)} {order.asset}
         </span>
       </div>
-      <div className="zt-row">
-        <span className="zt-muted">Total estimado</span>
-        <span>{formatVes(total)}</span>
-      </div>
-      {order.paymentMethod && (
-        <div className="zt-row">
-          <span className="zt-muted">Pago</span>
-          <button
-            type="button"
-            className="zt-link"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-            onClick={() => onCopyMethod(order.paymentMethod as string)}
-          >
-            {order.paymentMethod}
-            <IonIcon icon={copyOutline} />
-          </button>
+
+      {/* Métodos de pago como chips — SIN datos sensibles */}
+      {chips.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '8px 2px 2px' }}>
+          {chips.map((c) => (
+            <span
+              key={c}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                fontSize: 11.5,
+                color: 'var(--zt-text-dim)',
+                background: 'rgba(255,255,255,0.05)',
+                borderRadius: 6,
+                padding: '3px 8px',
+              }}
+            >
+              <span style={{ width: 3, height: 12, borderRadius: 2, background: 'var(--zt-cyan)' }} />
+              {c}
+            </span>
+          ))}
         </div>
       )}
-      <IonButton expand="block" style={{ marginTop: 8 }} disabled={taking} onClick={onTake}>
-        {taking ? 'Procesando…' : intent === 'buy' ? 'Comprar' : 'Vender'}
-      </IonButton>
+
+      <div className="zt-row" style={{ borderBottom: 'none', paddingTop: 8 }}>
+        <span className="zt-muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+          <IonIcon icon={timeOutline} />
+          15 min
+        </span>
+        <IonButton
+          size="small"
+          color={isBuy ? 'success' : 'danger'}
+          disabled={taking}
+          onClick={onTake}
+          style={{ '--border-radius': '8px' } as React.CSSProperties}
+        >
+          {taking ? 'Procesando…' : isBuy ? 'Comprar' : 'Vender'}
+        </IonButton>
+      </div>
     </div>
   );
 }
@@ -390,6 +438,7 @@ function P2pTradeCard({
   cancelling,
   onConfirm,
   onCancel,
+  onOpen,
 }: {
   trade: P2pTrade;
   isSeller: boolean;
@@ -397,11 +446,18 @@ function P2pTradeCard({
   cancelling: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  onOpen: () => void;
 }) {
   const st = TRADE_STATUS[trade.status] ?? { label: trade.status, color: 'var(--zt-text-dim)' };
   const total = Number(trade.amount) * Number(trade.priceVes);
+  const active = trade.status === 'pending' || trade.status === 'paid' || trade.status === 'disputed';
   return (
-    <div className="zt-card">
+    <div
+      className="zt-card"
+      role="button"
+      onClick={onOpen}
+      style={{ cursor: 'pointer' }}
+    >
       <div className="zt-row" style={{ borderBottom: 'none' }}>
         <span className="zt-token">
           <span
@@ -429,7 +485,7 @@ function P2pTradeCard({
       <div className="zt-row" style={{ borderBottom: 'none' }}>
         <span className="zt-muted">{formatDate(trade.createdAt)}</span>
         {trade.status === 'pending' && (
-          <span style={{ display: 'flex', gap: 6 }}>
+          <span style={{ display: 'flex', gap: 6 }} onClick={(e) => e.stopPropagation()}>
             <IonButton
               fill="clear"
               size="small"
@@ -442,16 +498,17 @@ function P2pTradeCard({
             {isSeller && (
               <IonButton size="small" disabled={confirming} onClick={onConfirm}>
                 <IonIcon slot="start" icon={checkmarkCircleOutline} />
-                Confirmar pago
+                Confirmar
               </IonButton>
             )}
           </span>
         )}
       </div>
-      {trade.status === 'pending' && !isSeller && (
-        <p className="zt-muted" style={{ margin: '4px 0 0' }}>
-          Paga el fiat al vendedor por el método acordado. Cuando confirme, recibirás el cripto.
-        </p>
+      {active && (
+        <IonButton expand="block" fill="outline" size="small" style={{ marginTop: 8 }} onClick={(e) => { e.stopPropagation(); onOpen(); }}>
+          <IonIcon slot="start" icon={chatbubbleEllipsesOutline} />
+          Abrir chat y detalle
+        </IonButton>
       )}
     </div>
   );

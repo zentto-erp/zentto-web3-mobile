@@ -34,6 +34,8 @@ import ProfilePage from './pages/ProfilePage';
 import KycPage from './pages/KycPage';
 import SecurityPage from './pages/SecurityPage';
 import P2pPage from './pages/P2pPage';
+import TradeDetailPage from './pages/TradeDetailPage';
+import RechargePage from './pages/RechargePage';
 import PaymentMethodsPage from './pages/PaymentMethodsPage';
 import AppSecurityPage from './pages/AppSecurityPage';
 import LegalPage from './pages/LegalPage';
@@ -105,8 +107,14 @@ export default function App() {
             <Route exact path="/home" component={HomePage} />
             <Route exact path="/send" component={SendPage} />
             <Route exact path="/receive" component={ReceivePage} />
+            <Route exact path="/recharge" component={RechargePage} />
             <Route exact path="/movements" component={MovementsPage} />
             <Route exact path="/p2p" component={P2pPage} />
+            <Route
+              exact
+              path="/p2p/trade/:id"
+              render={({ match }) => <TradeDetailPage tradeId={match.params.id} />}
+            />
             <Route exact path="/explore" component={ExplorePage} />
             <Route exact path="/profile" component={ProfilePage} />
             <Route exact path="/kyc" component={KycPage} />

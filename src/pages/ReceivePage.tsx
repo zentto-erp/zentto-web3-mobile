@@ -1,8 +1,12 @@
+import { useEffect, useMemo, useState } from 'react';
 import {
   IonButton,
   IonContent,
   IonIcon,
+  IonItem,
   IonPage,
+  IonSelect,
+  IonSelectOption,
   useIonToast,
 } from '@ionic/react';
 import {
@@ -15,11 +19,11 @@ import {
 import ZenttoHeader from '../components/ZenttoHeader';
 import QrCode from '../components/QrCode';
 import { CardSkeleton, ListSkeleton } from '../components/Skeletons';
-import { useDepositInfo, useDeposits } from '../hooks/usePayments';
+import { useDepositInfo, useDeposits, useNetworks } from '../hooks/usePayments';
 import { useAuth } from '../auth/AuthContext';
 import { formatAmount } from '../lib/format';
 import { shareOrCopy } from '../lib/share';
-import { tapLight, notifySuccess } from '../lib/haptics';
+import { tapLight, notifySuccess, selection } from '../lib/haptics';
 import type { ChainDeposit } from '../api/types';
 
 function shortHash(h?: string): string {
@@ -30,7 +34,23 @@ function shortHash(h?: string): string {
 export default function ReceivePage() {
   const { user } = useAuth();
   const [present] = useIonToast();
-  const depositInfo = useDepositInfo();
+  const networksQuery = useNetworks();
+  const [network, setNetwork] = useState<string>('');
+
+  const networks = useMemo(() => networksQuery.data ?? [], [networksQuery.data]);
+  const selectableNetworks = useMemo(
+    () => networks.filter((n) => n.available && n.enabled),
+    [networks],
+  );
+
+  // Red por defecto: primera red seleccionable.
+  useEffect(() => {
+    if (!network && selectableNetworks.length > 0) {
+      setNetwork(selectableNetworks[0].key);
+    }
+  }, [network, selectableNetworks]);
+
+  const depositInfo = useDepositInfo(network || undefined);
   const deposits = useDeposits();
 
   async function copyText(text: string, label: string) {
@@ -71,9 +91,31 @@ export default function ReceivePage() {
               color: '#c7d2fe',
             }}
           >
-            Envía USDC de testnet (Sepolia) a esta dirección. El indexer detecta el depósito
-            on-chain y acredita tu saldo automáticamente.
+            Envía USDC por {info?.chainName ?? 'la red seleccionada'} a esta dirección. El indexer
+            detecta el depósito on-chain y acredita tu saldo automáticamente.
           </div>
+
+          {/* Selector de red (la dirección EVM es la misma en todas las redes EVM) */}
+          <IonItem className="zt-card" lines="none">
+            <IonSelect
+              label="Red"
+              labelPlacement="stacked"
+              value={network}
+              onIonChange={(e) => {
+                selection();
+                setNetwork(e.detail.value);
+              }}
+              interface="popover"
+              placeholder="Selecciona la red"
+            >
+              {networks.map((n) => (
+                <IonSelectOption key={n.key} value={n.key} disabled={!n.available || !n.enabled}>
+                  {n.name}
+                  {!n.available ? ' · Próximamente' : ''}
+                </IonSelectOption>
+              ))}
+            </IonSelect>
+          </IonItem>
 
           {/* Transferencia interna por email (instantánea) */}
           {user?.email && (
@@ -126,6 +168,11 @@ export default function ReceivePage() {
               <div className="zt-card">
                 <h3>Dirección de depósito ({info.asset} · USDC)</h3>
                 <p className="zt-mono">{info.address}</p>
+                {info.note && (
+                  <p className="zt-muted" style={{ margin: '0 0 8px', fontSize: 13 }}>
+                    {info.note}
+                  </p>
+                )}
                 <div style={{ display: 'flex', gap: 8 }}>
                   <IonButton
                     expand="block"

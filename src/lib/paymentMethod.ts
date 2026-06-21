@@ -24,6 +24,17 @@ export function paymentMethodToText(m: PaymentMethod): string {
   return parts.join(' · ');
 }
 
+/**
+ * Etiqueta PÚBLICA del método (tipo + banco), SIN datos sensibles. Es lo único
+ * que se muestra en el order book; los números se revelan al tomar la oferta.
+ * Ej: "Pago Móvil · Mercantil".
+ */
+export function paymentMethodPublicLabel(m: PaymentMethod): string {
+  const parts = [paymentMethodTypeLabel(m.type)];
+  if (m.bankName) parts.push(m.bankName);
+  return parts.join(' · ');
+}
+
 /** Pares clave/valor copiables de un método de cobro (para la pantalla de detalle). */
 /** Bloque multilínea con TODOS los datos del método, listo para copiar de una vez. */
 export function paymentMethodToBlock(m: PaymentMethod): string {

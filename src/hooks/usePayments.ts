@@ -1,11 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   credit,
+  deleteWithdrawAddress,
   fetchAccountBalance,
   fetchDepositInfo,
   fetchDeposits,
+  fetchFees,
+  fetchNetworks,
   fetchPayment,
   fetchPayments,
+  fetchWithdrawAddresses,
+  saveWithdrawAddress,
   transfer,
   withdraw,
 } from '../api/payments';
@@ -14,8 +19,12 @@ import type {
   ChainDeposit,
   CreditInput,
   DepositInfo,
+  FeeRates,
+  NetworkInfo,
   Payment,
+  SaveWithdrawAddressInput,
   TransferInput,
+  WithdrawAddress,
   WithdrawInput,
 } from '../api/types';
 
@@ -23,6 +32,8 @@ const BALANCE_KEY = ['accounts', 'balance'];
 const PAYMENTS_KEY = ['payments'];
 const DEPOSIT_INFO_KEY = ['accounts', 'deposit-address'];
 const DEPOSITS_KEY = ['accounts', 'deposits'];
+const NETWORKS_KEY = ['networks'];
+const WITHDRAW_ADDRESSES_KEY = ['me', 'withdraw-addresses'];
 
 /** Saldo real del usuario (ledger). Se refresca solo cada 15s. */
 export function useAccountBalance() {
@@ -85,13 +96,59 @@ export function useCredit() {
   });
 }
 
-/** Dirección de depósito on-chain (estable; no necesita poll). */
-export function useDepositInfo() {
+/** Tarifas de comisión de la plataforma (transparencia). Cache larga. */
+export function useFees() {
+  return useQuery<FeeRates>({
+    queryKey: ['fees'],
+    queryFn: fetchFees,
+    staleTime: 10 * 60_000,
+    retry: false,
+  });
+}
+
+/** Redes cripto soportadas (multi-red). Estable; cache larga. */
+export function useNetworks() {
+  return useQuery<NetworkInfo[]>({
+    queryKey: NETWORKS_KEY,
+    queryFn: fetchNetworks,
+    staleTime: 10 * 60_000,
+    retry: false,
+  });
+}
+
+/** Dirección de depósito on-chain para una red (default: primaria). */
+export function useDepositInfo(network?: string) {
   return useQuery<DepositInfo>({
-    queryKey: DEPOSIT_INFO_KEY,
-    queryFn: fetchDepositInfo,
+    queryKey: [...DEPOSIT_INFO_KEY, network ?? ''],
+    queryFn: () => fetchDepositInfo(network),
     staleTime: 5 * 60_000,
     retry: false,
+  });
+}
+
+/** Direcciones de retiro guardadas (favoritas). */
+export function useWithdrawAddresses() {
+  return useQuery<WithdrawAddress[]>({
+    queryKey: WITHDRAW_ADDRESSES_KEY,
+    queryFn: fetchWithdrawAddresses,
+    staleTime: 60_000,
+    retry: false,
+  });
+}
+
+export function useSaveWithdrawAddress() {
+  const qc = useQueryClient();
+  return useMutation<WithdrawAddress, Error, SaveWithdrawAddressInput>({
+    mutationFn: saveWithdrawAddress,
+    onSuccess: () => qc.invalidateQueries({ queryKey: WITHDRAW_ADDRESSES_KEY }),
+  });
+}
+
+export function useDeleteWithdrawAddress() {
+  const qc = useQueryClient();
+  return useMutation<{ ok: boolean }, Error, string>({
+    mutationFn: deleteWithdrawAddress,
+    onSuccess: () => qc.invalidateQueries({ queryKey: WITHDRAW_ADDRESSES_KEY }),
   });
 }
 
@@ -114,6 +171,7 @@ export function useWithdraw() {
     onSuccess: () => {
       invalidate();
       qc.invalidateQueries({ queryKey: DEPOSITS_KEY });
+      qc.invalidateQueries({ queryKey: WITHDRAW_ADDRESSES_KEY });
     },
   });
 }

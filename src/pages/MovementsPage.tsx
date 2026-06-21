@@ -19,6 +19,7 @@ import TransactionDetailModal from '../components/TransactionDetailModal';
 import { ListSkeleton } from '../components/Skeletons';
 import { usePayments } from '../hooks/usePayments';
 import { formatAmount, formatDate } from '../lib/format';
+import { feeInfoOf } from '../lib/fees';
 import { tapLight } from '../lib/haptics';
 import type { Payment } from '../api/types';
 
@@ -102,6 +103,10 @@ function MovementRow({ p, onOpen }: { p: Payment; onOpen: () => void }) {
         ? `Recibido de ${p.counterparty ?? '—'}`
         : `Enviado a ${p.counterparty ?? '—'}`;
 
+  // Comisión a mostrar discretamente: total cobrado o comisión de plataforma.
+  const fees = feeInfoOf(p);
+  const feeToShow = fees.totalFee ?? fees.fee;
+
   return (
     <button type="button" className="zt-tx zt-tx--tap" onClick={onOpen}>
       <div
@@ -114,6 +119,11 @@ function MovementRow({ p, onOpen }: { p: Payment; onOpen: () => void }) {
       <div className="zt-tx-main">
         <div className="zt-tx-title">{title}</div>
         <div className="zt-tx-date">{formatDate(p.createdAt)}</div>
+        {feeToShow && (
+          <div className="zt-muted" style={{ fontSize: 12, marginTop: 2 }}>
+            Comisión: {formatAmount(feeToShow)} {p.asset}
+          </div>
+        )}
       </div>
 
       <div className="zt-tx-right">

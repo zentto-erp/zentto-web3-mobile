@@ -5,7 +5,6 @@ import {
   IonPage,
   IonRefresher,
   IonRefresherContent,
-  useIonToast,
 } from '@ionic/react';
 import { useHistory } from 'react-router-dom';
 import {
@@ -18,18 +17,15 @@ import {
 import ZenttoHeader from '../components/ZenttoHeader';
 import { BalanceSkeleton, ListSkeleton } from '../components/Skeletons';
 import { useEvmInfo, isEvmUnavailable } from '../hooks/useEvm';
-import { useAccountBalance, useCredit } from '../hooks/usePayments';
+import { useAccountBalance } from '../hooks/usePayments';
 import { useAuth } from '../auth/AuthContext';
 import { useCountUp } from '../hooks/useCountUp';
 import { formatAmount } from '../lib/format';
-import { tapLight, notifySuccess, notifyError } from '../lib/haptics';
+import { tapLight } from '../lib/haptics';
 import type { AccountBalance } from '../api/types';
 
 // Asset principal mostrado en grande. Si no hay saldo aún, se usa USDT.
 const PRIMARY_ASSET = 'USDT';
-const FAUCET_ASSET = 'USDT';
-const FAUCET_AMOUNT = '100';
-
 function assetSymbol(asset: string): string {
   return asset?.toUpperCase() === 'USDC' ? '$' : '₮';
 }
@@ -37,11 +33,9 @@ function assetSymbol(asset: string): string {
 export default function HomePage() {
   const history = useHistory();
   const { user } = useAuth();
-  const [present] = useIonToast();
 
   const info = useEvmInfo();
   const balance = useAccountBalance();
-  const creditMut = useCredit();
 
   const balances: AccountBalance[] = balance.data ?? [];
   const primary =
@@ -65,26 +59,6 @@ export default function HomePage() {
   function go(path: string) {
     tapLight();
     history.push(path);
-  }
-
-  async function handleFaucet() {
-    tapLight();
-    try {
-      await creditMut.mutateAsync({ asset: FAUCET_ASSET, amount: FAUCET_AMOUNT });
-      notifySuccess();
-      present({
-        message: `+${FAUCET_AMOUNT} ${FAUCET_ASSET} acreditados`,
-        duration: 1600,
-        color: 'success',
-      });
-    } catch {
-      notifyError();
-      present({
-        message: 'No se pudo obtener saldo de prueba',
-        duration: 1800,
-        color: 'danger',
-      });
-    }
   }
 
   return (
@@ -147,8 +121,7 @@ export default function HomePage() {
               <button
                 className="zt-quick-item"
                 type="button"
-                onClick={handleFaucet}
-                disabled={creditMut.isPending}
+                onClick={() => go('/recharge')}
               >
                 <span className="zt-quick-ic">
                   <IonIcon icon={addCircleOutline} />
@@ -176,16 +149,15 @@ export default function HomePage() {
             <div className="zt-card zt-enter">
               <div className="zt-empty" style={{ padding: '24px 8px' }}>
                 <IonIcon icon={walletOutline} />
-                <p>Aún no tienes saldo. Toca "Recargar" para obtener saldo de prueba y empezar.</p>
+                <p>Aún no tienes saldo. Toca "Recargar" para ingresar dinero y empezar.</p>
                 <IonButton
                   size="small"
                   fill="outline"
                   style={{ marginTop: 12 }}
-                  disabled={creditMut.isPending}
-                  onClick={handleFaucet}
+                  onClick={() => go('/recharge')}
                 >
                   <IonIcon slot="start" icon={addCircleOutline} />
-                  {creditMut.isPending ? 'Acreditando…' : `Obtener ${FAUCET_AMOUNT} ${FAUCET_ASSET}`}
+                  Recargar
                 </IonButton>
               </div>
             </div>

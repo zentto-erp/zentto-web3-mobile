@@ -13,6 +13,7 @@ import {
   IonSelectOption,
   IonSpinner,
   IonSkeletonText,
+  IonCheckbox,
   useIonToast,
 } from '@ionic/react';
 import { useHistory } from 'react-router-dom';
@@ -26,14 +27,26 @@ import {
   closeCircle,
   personOutline,
   callOutline,
+  trashOutline,
+  bookmarkOutline,
 } from 'ionicons/icons';
 import ZenttoHeader from '../components/ZenttoHeader';
-import { useAccountBalance, useTransfer, useWithdraw } from '../hooks/usePayments';
+import {
+  useAccountBalance,
+  useTransfer,
+  useWithdraw,
+  useNetworks,
+  useWithdrawAddresses,
+  useDeleteWithdrawAddress,
+  useFees,
+} from '../hooks/usePayments';
+import { useStepUp } from '../hooks/useStepUp';
 import { useUserSearch } from '../hooks/useUsers';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError } from '../api/client';
-import type { UserSearchResult } from '../api/types';
+import type { UserSearchResult, NetworkInfo } from '../api/types';
 import { formatAmount } from '../lib/format';
+import { calcWithdrawFee } from '../lib/fees';
 import { tapLight, selection, notifySuccess, notifyError } from '../lib/haptics';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -55,6 +68,18 @@ export default function SendPage() {
   const balance = useAccountBalance();
   const transferMut = useTransfer();
   const withdrawMut = useWithdraw();
+  const stepUp = useStepUp();
+  const networksQuery = useNetworks();
+  const withdrawAddresses = useWithdrawAddresses();
+  const deleteAddressMut = useDeleteWithdrawAddress();
+  const feesQuery = useFees();
+
+  // Redes disponibles (estilo Meru: selector de red para retirar).
+  const networks = useMemo(() => networksQuery.data ?? [], [networksQuery.data]);
+  const selectableNetworks = useMemo(
+    () => networks.filter((n) => n.available && n.enabled),
+    [networks],
+  );
 
   const balances = useMemo(() => balance.data ?? [], [balance.data]);
   const assets = balances.map((b) => b.asset);
@@ -84,10 +109,32 @@ export default function SendPage() {
   const toEmail = picked?.email ?? (typedIsEmail ? query.trim() : '');
 
   // Retiro on-chain (USDC)
+  const [network, setNetwork] = useState<string>('');
   const [toAddress, setToAddress] = useState('');
   const [wAmount, setWAmount] = useState('');
   const [totp, setTotp] = useState('');
+  const [saveAddr, setSaveAddr] = useState(false);
+  const [saveLabel, setSaveLabel] = useState('');
   const [wDone, setWDone] = useState(false);
+
+  // Red elegida por defecto: primera red seleccionable.
+  useEffect(() => {
+    if (!network && selectableNetworks.length > 0) {
+      setNetwork(selectableNetworks[0].key);
+    }
+  }, [network, selectableNetworks]);
+
+  const selectedNetwork = useMemo<NetworkInfo | undefined>(
+    () => networks.find((n) => n.key === network),
+    [networks, network],
+  );
+  const networkLabel = selectedNetwork?.name ?? 'la red seleccionada';
+
+  // Favoritas filtradas por la red elegida.
+  const favorites = useMemo(
+    () => (withdrawAddresses.data ?? []).filter((a) => a.network === network),
+    [withdrawAddresses.data, network],
+  );
 
   const effectiveAsset = asset || assets[0] || '';
   const selectedBal = balances.find((b) => b.asset === effectiveAsset);
@@ -114,6 +161,13 @@ export default function SendPage() {
   const canWithdraw =
     validAddr && validWAmount && validTotp && !!user?.totpEnabled && !withdrawMut.isPending;
 
+  // Desglose de comisión del retiro (transparencia, estilo Binance).
+  // El backend recalcula y cobra; esto es solo display informativo.
+  const withdrawFee = useMemo(
+    () => calcWithdrawFee(wAmountNum, feesQuery.data),
+    [wAmountNum, feesQuery.data],
+  );
+
   function selectRecipient(u: UserSearchResult) {
     selection();
     setPicked(u);
@@ -130,14 +184,23 @@ export default function SendPage() {
 
   async function handleSend() {
     if (!canTransfer) return;
+    if (!user?.totpEnabled) {
+      present({ message: 'Activa el 2FA para enviar dinero', duration: 2200, color: 'warning' });
+      history.push('/security');
+      return;
+    }
     tapLight();
     const to = toEmail.trim();
     const toLabel = picked?.displayName || picked?.email || to;
+    // Segundo factor (huella + 2FA) para mover dinero.
+    const totpCode = await stepUp('Autoriza la transferencia');
+    if (!totpCode) return;
     try {
       await transferMut.mutateAsync({
         toEmail: to,
         asset: effectiveAsset,
         amount: amount.trim(),
+        totpCode,
       });
       setDone({ to: toLabel, asset: effectiveAsset, amount: amount.trim() });
       notifySuccess();
@@ -161,22 +224,43 @@ export default function SendPage() {
     }
     if (!canWithdraw) return;
     tapLight();
+    const label = saveAddr ? saveLabel.trim() : '';
     try {
       await withdrawMut.mutateAsync({
         asset: 'USDC',
         amount: wAmount.trim(),
         toAddress: toAddress.trim(),
         totpCode: totp.trim(),
+        ...(network ? { network } : {}),
+        ...(label ? { saveLabel: label } : {}),
       });
       setWDone(true);
       notifySuccess();
       present({ message: 'Retiro en proceso', duration: 1800, color: 'success' });
       setWAmount('');
       setTotp('');
+      setSaveAddr(false);
+      setSaveLabel('');
     } catch (err) {
       notifyError();
       const msg = err instanceof ApiError ? err.message : 'No se pudo completar el retiro';
       present({ message: msg, duration: 2600, color: 'danger' });
+    }
+  }
+
+  function pickFavorite(address: string) {
+    selection();
+    setToAddress(address);
+  }
+
+  async function removeFavorite(id: string) {
+    tapLight();
+    try {
+      await deleteAddressMut.mutateAsync(id);
+      present({ message: 'Dirección eliminada', duration: 1400, color: 'success' });
+    } catch {
+      notifyError();
+      present({ message: 'No se pudo eliminar', duration: 1800, color: 'danger' });
     }
   }
 
@@ -430,9 +514,88 @@ export default function SendPage() {
             // ───────────────────────── Retiro on-chain ─────────────────────────
             <>
               <p className="zt-muted" style={{ marginTop: 12 }}>
-                Retira USDC a una wallet externa (Sepolia testnet). Requiere verificación 2FA con
+                Retira USDC a una wallet externa por {networkLabel}. Requiere verificación 2FA con
                 Google Authenticator.
               </p>
+
+              {/* Selector de red (estilo Meru) */}
+              <IonItem className="zt-card" lines="none">
+                <IonSelect
+                  label="Red"
+                  labelPlacement="stacked"
+                  value={network}
+                  onIonChange={(e) => {
+                    selection();
+                    setNetwork(e.detail.value);
+                  }}
+                  interface="popover"
+                  placeholder="Selecciona la red"
+                >
+                  {networks.map((n) => (
+                    <IonSelectOption key={n.key} value={n.key} disabled={!n.available || !n.enabled}>
+                      {n.name}
+                      {!n.available ? ' · Próximamente' : ''}
+                    </IonSelectOption>
+                  ))}
+                </IonSelect>
+              </IonItem>
+
+              {/* Direcciones favoritas filtradas por la red elegida */}
+              {network && (
+                <div className="zt-card">
+                  <div className="zt-row" style={{ borderBottom: 'none', paddingBottom: 4 }}>
+                    <h3 style={{ margin: 0 }}>Direcciones guardadas</h3>
+                    <span className="zt-muted">{networkLabel}</span>
+                  </div>
+                  {favorites.length === 0 ? (
+                    <p className="zt-muted" style={{ margin: '6px 0 0', fontSize: 13 }}>
+                      Aún no tienes direcciones guardadas en esta red.
+                    </p>
+                  ) : (
+                    favorites.map((f) => (
+                      <div className="zt-row" key={f.id}>
+                        <button
+                          type="button"
+                          onClick={() => pickFavorite(f.address)}
+                          style={{
+                            flex: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-start',
+                            gap: 2,
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            padding: 0,
+                            color: 'inherit',
+                          }}
+                        >
+                          <span>{f.label}</span>
+                          <span className="zt-muted" style={{ fontSize: 12 }}>
+                            {f.address.slice(0, 8)}…{f.address.slice(-6)}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeFavorite(f.id)}
+                          aria-label={`Eliminar ${f.label}`}
+                          disabled={deleteAddressMut.isPending}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'var(--zt-danger)',
+                            padding: 6,
+                          }}
+                        >
+                          <IonIcon icon={trashOutline} />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
 
               {!user?.totpEnabled && (
                 <div className="zt-banner">
@@ -467,6 +630,31 @@ export default function SendPage() {
                 </p>
               )}
 
+              {/* Guardar esta dirección como favorita (estilo Meru) */}
+              <IonItem className="zt-card" lines="none">
+                <IonIcon slot="start" icon={bookmarkOutline} style={{ color: 'var(--zt-text-dim)' }} />
+                <IonLabel>Guardar esta dirección</IonLabel>
+                <IonCheckbox
+                  slot="end"
+                  checked={saveAddr}
+                  onIonChange={(e) => {
+                    selection();
+                    setSaveAddr(e.detail.checked);
+                  }}
+                />
+              </IonItem>
+              {saveAddr && (
+                <IonItem className="zt-card" lines="none">
+                  <IonInput
+                    label="Alias (etiqueta)"
+                    labelPlacement="stacked"
+                    value={saveLabel}
+                    onIonInput={(e) => setSaveLabel(e.detail.value ?? '')}
+                    placeholder="Ej. Mi Binance"
+                  />
+                </IonItem>
+              )}
+
               <IonItem className="zt-card" lines="none">
                 <IonInput
                   label="Monto (USDC)"
@@ -493,6 +681,35 @@ export default function SendPage() {
                 <p className="zt-muted" style={{ color: 'var(--zt-danger)', margin: '6px 4px' }}>
                   El monto supera tu saldo USDC disponible.
                 </p>
+              )}
+
+              {/* Desglose de comisión (transparencia, estilo Binance) */}
+              {wAmountNum > 0 && (
+                <div className="zt-card">
+                  <div className="zt-row" style={{ borderBottom: 'none', paddingBottom: 4 }}>
+                    <h3 style={{ margin: 0 }}>Resumen del retiro</h3>
+                  </div>
+                  <div className="zt-row">
+                    <span className="zt-muted">Monto a enviar</span>
+                    <span>{formatAmount(withdrawFee.amount)} USDC</span>
+                  </div>
+                  <div className="zt-row">
+                    <span className="zt-muted">Comisión de plataforma</span>
+                    <span>{formatAmount(withdrawFee.platformFee)} USDC</span>
+                  </div>
+                  <div className="zt-row">
+                    <span className="zt-muted">Comisión de red</span>
+                    <span>{formatAmount(withdrawFee.networkFee)} USDC</span>
+                  </div>
+                  <div className="zt-row" style={{ borderBottom: 'none' }}>
+                    <strong>Total a debitar</strong>
+                    <strong>{formatAmount(withdrawFee.total)} USDC</strong>
+                  </div>
+                  <p className="zt-muted" style={{ margin: '4px 0 0', fontSize: 12 }}>
+                    El total se descuenta de tu saldo. La wallet de destino recibe el monto a
+                    enviar; las comisiones cubren la plataforma y el costo de red.
+                  </p>
+                </div>
               )}
 
               <IonItem className="zt-card" lines="none">

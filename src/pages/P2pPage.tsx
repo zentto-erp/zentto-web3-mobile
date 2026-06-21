@@ -31,6 +31,7 @@ import {
   useP2pTrades,
   useTakeP2pOrder,
 } from '../hooks/useP2p';
+import { useStepUp } from '../hooks/useStepUp';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError } from '../api/client';
 import { formatAmount, formatDate, formatVes, shortenAddress } from '../lib/format';
@@ -58,6 +59,7 @@ export default function P2pPage() {
   const [present] = useIonToast();
   const { user } = useAuth();
   const history = useHistory();
+  const stepUp = useStepUp();
 
   const [tab, setTab] = useState<Tab>('book');
   // En el libro elijo qué quiero hacer YO: comprar muestra ofertas de venta y viceversa.
@@ -112,8 +114,10 @@ export default function P2pPage() {
 
   async function onConfirmTrade(id: string) {
     tapLight();
+    const totpCode = await stepUp('Autoriza la liberación de cripto');
+    if (!totpCode) return;
     try {
-      await confirmTradeMut.mutateAsync(id);
+      await confirmTradeMut.mutateAsync({ id, totpCode });
       notifySuccess();
       present({ message: 'Pago confirmado. Cripto liberado.', duration: 2000, color: 'success' });
     } catch (err) {

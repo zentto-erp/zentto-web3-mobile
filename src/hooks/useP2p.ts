@@ -5,6 +5,7 @@ import {
   confirmP2pTrade,
   createP2pOrder,
   disputeP2pTrade,
+  extendP2pTrade,
   fetchMarketRate,
   fetchMyP2pOrders,
   fetchP2pMessages,
@@ -130,8 +131,8 @@ export function useTakeP2pOrder() {
 
 export function useConfirmP2pTrade() {
   const invalidate = useInvalidateP2p();
-  return useMutation<{ ok: boolean }, Error, string>({
-    mutationFn: confirmP2pTrade,
+  return useMutation<{ ok: boolean }, Error, { id: string; totpCode?: string }>({
+    mutationFn: ({ id, totpCode }) => confirmP2pTrade(id, totpCode),
     onSuccess: invalidate,
   });
 }
@@ -148,6 +149,18 @@ export function useDisputeP2pTrade() {
   const invalidate = useInvalidateP2p();
   return useMutation<{ ok: boolean }, Error, { id: string; reason: string }>({
     mutationFn: ({ id, reason }) => disputeP2pTrade(id, reason),
+    onSuccess: invalidate,
+  });
+}
+
+export function useExtendP2pTrade() {
+  const invalidate = useInvalidateP2p();
+  return useMutation<
+    { ok: boolean; extensions: number; extensionsLeft: number; deadline: string | null },
+    Error,
+    string
+  >({
+    mutationFn: extendP2pTrade,
     onSuccess: invalidate,
   });
 }

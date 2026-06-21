@@ -66,14 +66,24 @@ export async function fetchMarketRate(): Promise<MarketRate> {
   return apiFetch<MarketRate>('/p2p/market');
 }
 
-/** El VENDEDOR confirma fiat recibido → libera el cripto al comprador. */
-export async function confirmP2pTrade(id: string): Promise<{ ok: boolean }> {
-  return apiFetch<{ ok: boolean }>(`/p2p/trades/${id}/confirm`, { method: 'POST' });
+/** El VENDEDOR confirma fiat recibido → libera el cripto al comprador. Requiere TOTP (2FA). */
+export async function confirmP2pTrade(id: string, totpCode?: string): Promise<{ ok: boolean }> {
+  return apiFetch<{ ok: boolean }>(`/p2p/trades/${id}/confirm`, {
+    method: 'POST',
+    body: { totpCode },
+  });
 }
 
 /** El COMPRADOR marca el fiat como pagado → inicia la ventana de liberación. */
 export async function markP2pTradePaid(id: string): Promise<{ ok: boolean }> {
   return apiFetch<{ ok: boolean }>(`/p2p/trades/${id}/paid`, { method: 'POST' });
+}
+
+/** Extiende la ventana de tiempo del trade (+15 min, tope 2). */
+export async function extendP2pTrade(
+  id: string,
+): Promise<{ ok: boolean; extensions: number; extensionsLeft: number; deadline: string | null }> {
+  return apiFetch(`/p2p/trades/${id}/extend`, { method: 'POST' });
 }
 
 /** Abre una disputa del trade (la resuelve un árbitro del backoffice). */

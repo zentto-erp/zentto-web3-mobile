@@ -18,6 +18,7 @@ import {
   paymentTypeLabel,
   shortenHash,
 } from '../lib/format';
+import { feeInfoOf, hasFeeInfo } from '../lib/fees';
 import { copyText } from '../lib/clipboard';
 import { openExternal } from '../lib/browser';
 import { tapLight, notifySuccess, notifyError } from '../lib/haptics';
@@ -104,6 +105,8 @@ export default function TransactionDetailModal({
   const amountColor = inflow ? 'var(--zt-success)' : 'var(--zt-danger)';
   const hash = p ? txHashOf(p) : null;
   const failure = p ? failureReasonOf(p) : null;
+  const fees = p ? feeInfoOf(p) : null;
+  const showFees = !!fees && hasFeeInfo(fees);
   const counterparty = p?.counterparty && !isHexHash(p.counterparty) ? p.counterparty : null;
 
   return (
@@ -180,6 +183,44 @@ export default function TransactionDetailModal({
                 <StatusChip status={String(p.status)} size="md" />
               </span>
             </div>
+
+            {/* Desglose de comisión (transparencia, estilo Binance) */}
+            {showFees && p && fees && (
+              <>
+                {fees.grossAmount && (
+                  <div className="zt-detail-row">
+                    <span className="zt-detail-k">Monto bruto</span>
+                    <span className="zt-detail-v">
+                      {formatAmount(fees.grossAmount)} {p.asset}
+                    </span>
+                  </div>
+                )}
+                {fees.fee && (
+                  <div className="zt-detail-row">
+                    <span className="zt-detail-k">Comisión de plataforma</span>
+                    <span className="zt-detail-v">
+                      {formatAmount(fees.fee)} {p.asset}
+                    </span>
+                  </div>
+                )}
+                {fees.networkFee && (
+                  <div className="zt-detail-row">
+                    <span className="zt-detail-k">Comisión de red</span>
+                    <span className="zt-detail-v">
+                      {formatAmount(fees.networkFee)} {p.asset}
+                    </span>
+                  </div>
+                )}
+                {fees.totalFee && (
+                  <div className="zt-detail-row">
+                    <span className="zt-detail-k">Comisión total</span>
+                    <span className="zt-detail-v">
+                      {formatAmount(fees.totalFee)} {p.asset}
+                    </span>
+                  </div>
+                )}
+              </>
+            )}
 
             {/* ID de transacción + copiar (para soporte) */}
             <div className="zt-detail-row">

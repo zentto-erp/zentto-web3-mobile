@@ -18,6 +18,7 @@ import {
   cameraOutline,
   checkmarkCircleOutline,
   copyOutline,
+  hourglassOutline,
   imageOutline,
   lockClosedOutline,
   sendOutline,
@@ -26,11 +27,13 @@ import {
 import {
   useConfirmP2pTrade,
   useDisputeP2pTrade,
+  useExtendP2pTrade,
   useMarkP2pTradePaid,
   useP2pMessages,
   useP2pTrade,
   useSendP2pMessage,
 } from '../hooks/useP2p';
+import { useStepUp } from '../hooks/useStepUp';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError } from '../api/client';
 import { formatAmount, formatDateTime, formatVes, shortenAddress } from '../lib/format';
@@ -52,10 +55,14 @@ function statusMeta(s: P2pTradeStatus) {
   return STATUS_META[s] ?? { label: String(s), color: 'var(--zt-text-dim)' };
 }
 
-/** Minutos restantes hasta una fecha límite (negativo si ya venció). */
-function minutesLeft(deadline?: string | null): number | null {
-  if (!deadline) return null;
-  return Math.round((new Date(deadline).getTime() - Date.now()) / 60_000);
+/** Formatea una duración en ms como "mm:ss" (o "—" si no aplica). */
+function fmtClock(ms: number): string {
+  if (!Number.isFinite(ms)) return '—';
+  const sign = ms < 0 ? '-' : '';
+  const total = Math.floor(Math.abs(ms) / 1000);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${sign}${m}:${String(s).padStart(2, '0')}`;
 }
 
 export default function TradeDetailPage({ tradeId }: { tradeId: string }) {
@@ -67,16 +74,18 @@ export default function TradeDetailPage({ tradeId }: { tradeId: string }) {
   const confirmMut = useConfirmP2pTrade();
   const paidMut = useMarkP2pTradePaid();
   const disputeMut = useDisputeP2pTrade();
+  const extendMut = useExtendP2pTrade();
   const sendMut = useSendP2pMessage(tradeId);
+  const stepUp = useStepUp();
 
   const [draft, setDraft] = useState('');
   const [, forceTick] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Re-render cada 30s para refrescar los contadores de tiempo del escrow.
+  // Re-render cada 1s para el reloj en vivo del escrow (tiempo transcurrido/restante).
   useEffect(() => {
-    const t = setInterval(() => forceTick((n) => n + 1), 30_000);
+    const t = setInterval(() => forceTick((n) => n + 1), 1_000);
     return () => clearInterval(t);
   }, []);
 
@@ -95,20 +104,32 @@ export default function TradeDetailPage({ tradeId }: { tradeId: string }) {
   const isPaid = trade?.status === 'paid';
   const isOpen = isPending || isPaid;
 
-  const countdown = useMemo(() => {
+  const clock = useMemo(() => {
     if (!trade) return null;
-    if (isPending) {
-      const m = minutesLeft(trade.paymentDeadline);
-      if (m === null) return null;
-      return { label: 'Tiempo para pagar', mins: m };
+    const now = Date.now();
+    if (isPending && trade.paymentDeadline) {
+      const start = new Date(trade.createdAt as string).getTime();
+      return {
+        label: 'Tiempo para pagar',
+        elapsedMs: now - start,
+        remainingMs: new Date(trade.paymentDeadline).getTime() - now,
+        totalMs: new Date(trade.paymentDeadline).getTime() - start,
+      };
     }
-    if (isPaid) {
-      const m = minutesLeft(trade.releaseDeadline);
-      if (m === null) return null;
-      return { label: 'Tiempo para liberar', mins: m };
+    if (isPaid && trade.releaseDeadline) {
+      const start = trade.paidAt ? new Date(trade.paidAt).getTime() : now;
+      return {
+        label: 'Tiempo para liberar',
+        elapsedMs: now - start,
+        remainingMs: new Date(trade.releaseDeadline).getTime() - now,
+        totalMs: new Date(trade.releaseDeadline).getTime() - start,
+      };
     }
     return null;
   }, [trade, isPending, isPaid]);
+
+  const extensionsLeft = trade?.extensionsLeft ?? 0;
+  const expired = !!clock && clock.remainingMs <= 0;
 
   function errMsg(err: unknown, fallback: string) {
     return err instanceof ApiError ? err.message : fallback;
@@ -133,13 +154,32 @@ export default function TradeDetailPage({ tradeId }: { tradeId: string }) {
 
   async function onConfirm() {
     tapLight();
+    // Liberar cripto mueve fondos → segundo factor (huella + 2FA).
+    const totpCode = await stepUp('Autoriza la liberación de cripto');
+    if (!totpCode) return;
     try {
-      await confirmMut.mutateAsync(tradeId);
+      await confirmMut.mutateAsync({ id: tradeId, totpCode });
       notifySuccess();
       present({ message: 'Pago confirmado. Cripto liberado al comprador.', duration: 2200, color: 'success' });
     } catch (err) {
       notifyError();
       present({ message: errMsg(err, 'No se pudo confirmar'), duration: 2400, color: 'danger' });
+    }
+  }
+
+  async function onExtend() {
+    tapLight();
+    try {
+      const r = await extendMut.mutateAsync(tradeId);
+      notifySuccess();
+      present({
+        message: `Tiempo extendido +15 min. Te quedan ${r.extensionsLeft} extensiones.`,
+        duration: 2400,
+        color: 'success',
+      });
+    } catch (err) {
+      notifyError();
+      present({ message: errMsg(err, 'No se pudo extender el tiempo'), duration: 2400, color: 'danger' });
     }
   }
 
@@ -308,23 +348,84 @@ export default function TradeDetailPage({ tradeId }: { tradeId: string }) {
                 )
               )}
 
-              {/* Contador de la ventana de tiempo (escrow) */}
-              {countdown && (
+              {/* Reloj de la ventana de tiempo del escrow */}
+              {clock && (
                 <div
-                  className="zt-banner"
+                  className="zt-card"
                   style={{
-                    background: countdown.mins < 0 ? 'rgba(248,113,113,0.10)' : 'rgba(34,211,238,0.10)',
-                    borderColor: countdown.mins < 0 ? 'rgba(248,113,113,0.30)' : 'rgba(34,211,238,0.30)',
-                    color: countdown.mins < 0 ? 'var(--zt-danger)' : 'var(--zt-cyan)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
+                    borderColor: expired ? 'rgba(248,113,113,0.35)' : 'rgba(34,211,238,0.30)',
+                    background: expired ? 'rgba(248,113,113,0.06)' : 'rgba(34,211,238,0.05)',
                   }}
                 >
-                  <IonIcon icon={timeOutline} />
-                  {countdown.mins < 0
-                    ? `${countdown.label}: vencido`
-                    : `${countdown.label}: ${countdown.mins} min`}
+                  <div className="zt-row" style={{ borderBottom: 'none' }}>
+                    <span className="zt-token" style={{ alignItems: 'center', gap: 6 }}>
+                      <IonIcon
+                        icon={timeOutline}
+                        style={{ color: expired ? 'var(--zt-danger)' : 'var(--zt-cyan)' }}
+                      />
+                      <strong>{clock.label}</strong>
+                    </span>
+                    <strong
+                      style={{
+                        fontVariantNumeric: 'tabular-nums',
+                        fontSize: 20,
+                        color: expired ? 'var(--zt-danger)' : 'var(--zt-cyan)',
+                      }}
+                    >
+                      {expired ? 'Vencido' : fmtClock(clock.remainingMs)}
+                    </strong>
+                  </div>
+
+                  {/* Barra de progreso del tiempo */}
+                  <div
+                    style={{
+                      height: 6,
+                      borderRadius: 4,
+                      background: 'rgba(255,255,255,0.08)',
+                      overflow: 'hidden',
+                      margin: '8px 0 6px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: '100%',
+                        width: `${Math.min(100, Math.max(0, (clock.elapsedMs / clock.totalMs) * 100))}%`,
+                        background: expired ? 'var(--zt-danger)' : 'var(--zt-cyan)',
+                        transition: 'width 1s linear',
+                      }}
+                    />
+                  </div>
+
+                  <div className="zt-row" style={{ borderBottom: 'none', padding: 0 }}>
+                    <span className="zt-muted" style={{ fontSize: 12 }}>
+                      Transcurrido {fmtClock(clock.elapsedMs)}
+                    </span>
+                    <span className="zt-muted" style={{ fontSize: 12 }}>
+                      {extensionsLeft > 0
+                        ? `${extensionsLeft} extensión(es) disponibles`
+                        : 'Sin extensiones'}
+                    </span>
+                  </div>
+
+                  {/* Extender tiempo (mientras queden extensiones) */}
+                  {extensionsLeft > 0 ? (
+                    <IonButton
+                      expand="block"
+                      fill="outline"
+                      size="small"
+                      style={{ marginTop: 10 }}
+                      disabled={extendMut.isPending}
+                      onClick={onExtend}
+                    >
+                      <IonIcon slot="start" icon={hourglassOutline} />
+                      Extender +15 min
+                    </IonButton>
+                  ) : (
+                    <p className="zt-muted" style={{ margin: '8px 0 0', fontSize: 11.5, color: 'var(--zt-warning)' }}>
+                      Se agotaron las extensiones. Si el tiempo vence, la operación pasa a disputa
+                      para que un árbitro la resuelva.
+                    </p>
+                  )}
                 </div>
               )}
 

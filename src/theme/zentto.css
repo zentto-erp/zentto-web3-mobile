@@ -1194,3 +1194,130 @@ strong {
     transition: none;
   }
 }
+
+/* ════════════════════════════════════════════════════════════
+   BUSCADOR DE DESTINATARIO — estilo elegir contacto (Revolut/Binance Pay)
+   ════════════════════════════════════════════════════════════ */
+.zt-search-item ion-icon[slot='start'] {
+  margin-right: 10px;
+  align-self: center;
+}
+
+/* Lista de resultados — tarjeta limpia con divisores finos. */
+.zt-results {
+  margin-top: 8px;
+  background: var(--zt-card);
+  border: 1px solid var(--zt-border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px -18px rgba(0, 0, 0, 0.7);
+}
+
+.zt-result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--zt-border);
+  color: inherit;
+  font: inherit;
+  padding: 12px 14px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.14s ease, transform 0.1s ease;
+}
+.zt-result:last-child {
+  border-bottom: none;
+}
+.zt-result:active {
+  background: rgba(255, 255, 255, 0.045);
+  transform: scale(0.995);
+}
+
+.zt-result-empty {
+  padding: 14px;
+}
+.zt-result-empty .zt-result {
+  border: 1px solid var(--zt-border);
+  border-radius: 12px;
+  background: var(--zt-card-2);
+}
+
+/* Avatar con inicial (resultados + chip de destinatario). */
+.zt-recipient-avatar {
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 15px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--zt-indigo) 0%, var(--zt-cyan) 100%);
+}
+
+.zt-recipient-id {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.zt-recipient-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--zt-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zt-recipient-sub {
+  font-size: 12px;
+  color: var(--zt-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+/* Chip/tarjeta del destinatario elegido. */
+.zt-recipient {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  background: var(--zt-card);
+  border: 1px solid var(--zt-indigo);
+  border-radius: 16px;
+  padding: 12px 14px;
+  box-shadow: 0 8px 24px -18px rgba(99, 102, 241, 0.6);
+}
+
+.zt-recipient-clear {
+  flex: 0 0 auto;
+  background: none;
+  border: none;
+  color: var(--zt-text-dim);
+  font-size: 24px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform 0.1s ease, color 0.14s ease;
+}
+.zt-recipient-clear:active {
+  transform: scale(0.88);
+  color: var(--zt-danger);
+}
+
+/* ════════════════════════════════════════════════════════════
+   FORMULARIO DE PERFIL — campos editables (nombre / teléfono)
+   ════════════════════════════════════════════════════════════ */
+.zt-field-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--zt-text-dim);
+  margin: 14px 4px 6px;
+}

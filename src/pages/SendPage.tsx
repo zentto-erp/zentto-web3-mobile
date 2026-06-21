@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   IonButton,
   IonContent,
@@ -12,6 +12,7 @@ import {
   IonSelect,
   IonSelectOption,
   IonSpinner,
+  IonSkeletonText,
   useIonToast,
 } from '@ionic/react';
 import { useHistory } from 'react-router-dom';
@@ -21,11 +22,17 @@ import {
   walletOutline,
   exitOutline,
   shieldOutline,
+  searchOutline,
+  closeCircle,
+  personOutline,
+  callOutline,
 } from 'ionicons/icons';
 import ZenttoHeader from '../components/ZenttoHeader';
 import { useAccountBalance, useTransfer, useWithdraw } from '../hooks/usePayments';
+import { useUserSearch } from '../hooks/useUsers';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError } from '../api/client';
+import type { UserSearchResult } from '../api/types';
 import { formatAmount } from '../lib/format';
 import { tapLight, selection, notifySuccess, notifyError } from '../lib/haptics';
 
@@ -34,6 +41,11 @@ const EVM_ADDR_RE = /^0x[0-9a-fA-F]{40}$/;
 const TOTP_RE = /^\d{6}$/;
 
 type Mode = 'transfer' | 'withdraw';
+
+/** Inicial para el avatar de un destinatario (nombre > email). */
+function initialOf(u: { displayName?: string | null; email: string }): string {
+  return (u.displayName || u.email || '?').trim().charAt(0).toUpperCase();
+}
 
 export default function SendPage() {
   const history = useHistory();
@@ -49,11 +61,27 @@ export default function SendPage() {
 
   const [mode, setMode] = useState<Mode>('transfer');
 
-  // Transferencia interna
-  const [toEmail, setToEmail] = useState('');
+  // Transferencia interna — buscador de destinatario
+  const [query, setQuery] = useState(''); // texto del campo "Para"
+  const [debounced, setDebounced] = useState(''); // valor con debounce ~300ms
+  const [picked, setPicked] = useState<UserSearchResult | null>(null); // destinatario elegido
   const [asset, setAsset] = useState<string>('');
   const [amount, setAmount] = useState('');
   const [done, setDone] = useState<{ to: string; asset: string; amount: string } | null>(null);
+
+  // Debounce del buscador (no consulta hasta que el usuario deja de teclear).
+  useEffect(() => {
+    if (picked) return; // ya hay destinatario fijo: no buscar
+    const id = setTimeout(() => setDebounced(query.trim()), 300);
+    return () => clearTimeout(id);
+  }, [query, picked]);
+
+  const search = useUserSearch(picked ? '' : debounced);
+  const results = useMemo(() => search.data ?? [], [search.data]);
+  const searching = !picked && debounced.length >= 2 && search.isFetching;
+  // Email destino efectivo: el del destinatario elegido, o el texto si es un email válido (fallback).
+  const typedIsEmail = EMAIL_RE.test(query.trim());
+  const toEmail = picked?.email ?? (typedIsEmail ? query.trim() : '');
 
   // Retiro on-chain (USDC)
   const [toAddress, setToAddress] = useState('');
@@ -71,10 +99,11 @@ export default function SendPage() {
 
   // Validación transferencia
   const validEmail = EMAIL_RE.test(toEmail.trim());
+  const hasRecipient = !!picked || validEmail; // destinatario elegido o email válido escrito
   const amountNum = Number(amount);
   const validAmount = amountNum > 0 && amountNum <= available;
   const overBalance = amountNum > 0 && amountNum > available;
-  const canTransfer = validEmail && validAmount && !!effectiveAsset && !transferMut.isPending;
+  const canTransfer = hasRecipient && validAmount && !!effectiveAsset && !transferMut.isPending;
 
   // Validación retiro
   const validAddr = EVM_ADDR_RE.test(toAddress.trim());
@@ -85,19 +114,37 @@ export default function SendPage() {
   const canWithdraw =
     validAddr && validWAmount && validTotp && !!user?.totpEnabled && !withdrawMut.isPending;
 
+  function selectRecipient(u: UserSearchResult) {
+    selection();
+    setPicked(u);
+    setQuery(u.displayName || u.email);
+    setDebounced('');
+  }
+
+  function clearRecipient() {
+    tapLight();
+    setPicked(null);
+    setQuery('');
+    setDebounced('');
+  }
+
   async function handleSend() {
     if (!canTransfer) return;
     tapLight();
+    const to = toEmail.trim();
+    const toLabel = picked?.displayName || picked?.email || to;
     try {
       await transferMut.mutateAsync({
-        toEmail: toEmail.trim(),
+        toEmail: to,
         asset: effectiveAsset,
         amount: amount.trim(),
       });
-      setDone({ to: toEmail.trim(), asset: effectiveAsset, amount: amount.trim() });
+      setDone({ to: toLabel, asset: effectiveAsset, amount: amount.trim() });
       notifySuccess();
       present({ message: 'Transferencia enviada', duration: 1600, color: 'success' });
-      setToEmail('');
+      setPicked(null);
+      setQuery('');
+      setDebounced('');
       setAmount('');
     } catch (err) {
       notifyError();
@@ -168,26 +215,131 @@ export default function SendPage() {
             ) : (
               <>
                 <p className="zt-muted" style={{ marginTop: 12 }}>
-                  Envía saldo a otro usuario de Zentto por su email. La operación se registra en el
-                  ledger de inmediato.
+                  Busca a otro usuario de Zentto por correo, teléfono o nombre. La operación se
+                  registra en el ledger de inmediato.
                 </p>
 
-                <IonItem className="zt-card" lines="none">
-                  <IonInput
-                    label="Email del destinatario"
-                    labelPlacement="stacked"
-                    type="email"
-                    inputmode="email"
-                    autocapitalize="off"
-                    value={toEmail}
-                    onIonInput={(e) => setToEmail(e.detail.value ?? '')}
-                    placeholder="usuario@correo.com"
-                  />
-                </IonItem>
-                {toEmail && !validEmail && (
-                  <p className="zt-muted" style={{ color: 'var(--zt-danger)', margin: '6px 4px' }}>
-                    Email inválido.
-                  </p>
+                {picked ? (
+                  // ── Destinatario elegido (chip/tarjeta) ──
+                  <div className="zt-recipient">
+                    <div className="zt-recipient-avatar">{initialOf(picked)}</div>
+                    <div className="zt-recipient-id">
+                      <div className="zt-recipient-name">
+                        {picked.displayName || picked.email}
+                      </div>
+                      <div className="zt-recipient-sub">
+                        {picked.displayName ? picked.email : picked.phone || 'Usuario Zentto'}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="zt-recipient-clear"
+                      onClick={clearRecipient}
+                      aria-label="Cambiar destinatario"
+                    >
+                      <IonIcon icon={closeCircle} />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <IonItem className="zt-card zt-search-item" lines="none">
+                      <IonIcon
+                        slot="start"
+                        icon={searchOutline}
+                        style={{ color: 'var(--zt-text-dim)', fontSize: 18 }}
+                      />
+                      <IonInput
+                        label="Para"
+                        labelPlacement="stacked"
+                        autocapitalize="off"
+                        value={query}
+                        onIonInput={(e) => setQuery(e.detail.value ?? '')}
+                        placeholder="Correo, teléfono o nombre"
+                      />
+                    </IonItem>
+
+                    {/* Resultados / estados del buscador */}
+                    {debounced.length >= 2 && (
+                      <div className="zt-results zt-stagger">
+                        {searching ? (
+                          // Skeleton mientras busca
+                          [0, 1, 2].map((i) => (
+                            <div className="zt-result" key={i}>
+                              <IonSkeletonText
+                                animated
+                                className="zt-sk-circle"
+                                style={{ width: 38, height: 38 }}
+                              />
+                              <div style={{ flex: 1 }}>
+                                <IonSkeletonText animated style={{ width: '55%', height: 12 }} />
+                                <IonSkeletonText
+                                  animated
+                                  style={{ width: '40%', height: 10, marginTop: 6 }}
+                                />
+                              </div>
+                            </div>
+                          ))
+                        ) : results.length > 0 ? (
+                          results.map((u) => (
+                            <button
+                              type="button"
+                              className="zt-result"
+                              key={u.id}
+                              onClick={() => selectRecipient(u)}
+                            >
+                              <div className="zt-recipient-avatar">{initialOf(u)}</div>
+                              <div className="zt-recipient-id">
+                                <div className="zt-recipient-name">
+                                  {u.displayName || u.email}
+                                </div>
+                                <div className="zt-recipient-sub">
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                                    <IonIcon icon={personOutline} style={{ fontSize: 12 }} />
+                                    {u.email}
+                                  </span>
+                                  {u.phone && (
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginLeft: 10 }}>
+                                      <IonIcon icon={callOutline} style={{ fontSize: 12 }} />
+                                      {u.phone}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          ))
+                        ) : (
+                          // Sin resultados — permitir email exacto como fallback
+                          <div className="zt-result-empty">
+                            <p className="zt-muted" style={{ margin: 0 }}>
+                              No se encontró ningún usuario.
+                            </p>
+                            {typedIsEmail ? (
+                              <button
+                                type="button"
+                                className="zt-result"
+                                style={{ marginTop: 8 }}
+                                onClick={() =>
+                                  selectRecipient({ id: query.trim(), email: query.trim() })
+                                }
+                              >
+                                <div className="zt-recipient-avatar">
+                                  {query.trim().charAt(0).toUpperCase()}
+                                </div>
+                                <div className="zt-recipient-id">
+                                  <div className="zt-recipient-name">Enviar a este correo</div>
+                                  <div className="zt-recipient-sub">{query.trim()}</div>
+                                </div>
+                              </button>
+                            ) : (
+                              <p className="zt-muted" style={{ margin: '6px 0 0', fontSize: 12 }}>
+                                Escribe el correo exacto para enviarle igualmente.
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
 
                 <IonItem className="zt-card" lines="none">

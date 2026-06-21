@@ -2,7 +2,22 @@ export interface User {
   id: string;
   email: string;
   displayName?: string | null;
+  phone?: string | null;
   totpEnabled: boolean;
+}
+
+/** Resultado del buscador de usuarios (GET /users/search). */
+export interface UserSearchResult {
+  id: string;
+  email: string;
+  displayName?: string | null;
+  phone?: string | null;
+}
+
+/** Body de actualización del propio perfil (PATCH /users/me). */
+export interface UpdateMeInput {
+  displayName?: string;
+  phone?: string;
 }
 
 export interface LoginResult {

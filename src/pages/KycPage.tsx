@@ -209,19 +209,22 @@ export default function KycPage() {
               <ImageCapture
                 label="Documento (frente)"
                 required
-                hint="Foto nítida del frente de tu cédula/pasaporte."
+                shape="card"
+                hint="Encuadra el frente de tu cédula/pasaporte en el recuadro."
                 value={front}
                 onChange={setFront}
               />
               <ImageCapture
                 label="Documento (dorso)"
+                shape="card"
                 hint="Opcional — reverso del documento."
                 value={back}
                 onChange={setBack}
               />
               <ImageCapture
                 label="Selfie"
-                hint="Recomendado — habilita prueba de vida y comparación facial."
+                shape="oval"
+                hint="Centra tu rostro en el óvalo. Habilita prueba de vida y face match."
                 value={selfie}
                 onChange={setSelfie}
               />

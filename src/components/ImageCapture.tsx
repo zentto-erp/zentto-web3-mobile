@@ -1,27 +1,33 @@
-import { useRef } from 'react';
+import { useState, useRef } from 'react';
 import { IonButton, IonIcon } from '@ionic/react';
 import { cameraOutline, imageOutline, closeCircle } from 'ionicons/icons';
-import {
-  fileToCaptured,
-  revokePreview,
-  tryNativeCamera,
-  type CapturedImage,
-} from '../lib/capture';
+import { fileToCaptured, revokePreview, type CapturedImage } from '../lib/capture';
+import CameraCaptureModal, { type CaptureShape } from './CameraCaptureModal';
 
 interface Props {
   label: string;
   hint?: string;
   required?: boolean;
+  /** Guía de la cámara en la app: 'oval' (selfie) | 'card' (documento). */
+  shape?: CaptureShape;
   value: CapturedImage | null;
   onChange: (img: CapturedImage | null) => void;
 }
 
 /**
- * Captura una imagen para KYC. Usa la cámara nativa de Capacitor si está
- * disponible (Camera.getPhoto); si no, cae al <input type="file" capture> web.
+ * Captura una imagen para KYC. El botón "Cámara" abre una cámara EN la app con
+ * guía visual (óvalo/recuadro); "Archivo" abre la galería.
  */
-export default function ImageCapture({ label, hint, required, value, onChange }: Props) {
+export default function ImageCapture({
+  label,
+  hint,
+  required,
+  shape = 'card',
+  value,
+  onChange,
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [showCam, setShowCam] = useState(false);
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -33,15 +39,14 @@ export default function ImageCapture({ label, hint, required, value, onChange }:
     e.target.value = '';
   }
 
-  async function takePhoto() {
-    const native = await tryNativeCamera('camera');
-    if (native) {
-      revokePreview(value);
-      onChange(native);
-      return;
-    }
-    // Fallback web: abre cámara/galería con el input file.
-    inputRef.current?.click();
+  function takePhoto() {
+    setShowCam(true);
+  }
+
+  function onCaptured(img: CapturedImage) {
+    revokePreview(value);
+    onChange(img);
+    setShowCam(false);
   }
 
   function clear() {
@@ -116,9 +121,17 @@ export default function ImageCapture({ label, hint, required, value, onChange }:
         ref={inputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         onChange={onFile}
         style={{ display: 'none' }}
+      />
+
+      <CameraCaptureModal
+        isOpen={showCam}
+        shape={shape}
+        title={label}
+        hint={hint}
+        onCapture={onCaptured}
+        onDismiss={() => setShowCam(false)}
       />
     </div>
   );

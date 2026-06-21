@@ -22,6 +22,11 @@ export async function fetchPayments(): Promise<Payment[]> {
   return apiFetch<Payment[]>('/payments');
 }
 
+/** Detalle de un movimiento por id (para la hoja de detalle de transacción). */
+export async function fetchPayment(id: string): Promise<Payment> {
+  return apiFetch<Payment>(`/payments/${encodeURIComponent(id)}`);
+}
+
 /** Transferencia real a otro usuario por email. Mueve saldo en el ledger. */
 export async function transfer(input: TransferInput): Promise<Payment> {
   return apiFetch<Payment>('/payments/transfer', {

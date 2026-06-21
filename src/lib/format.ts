@@ -34,9 +34,60 @@ export function formatDate(value: string | number | null | undefined): string {
   return `${day.replace('.', '')} · ${time}`;
 }
 
+/**
+ * Fecha y hora completa en una sola línea, es-VE: "20 de junio de 2026, 7:43 p. m.".
+ * Para el detalle de transacción (más explícito que `formatDate`).
+ */
+export function formatDateTime(value: string | number | null | undefined): string {
+  if (value == null || value === '') return '';
+  const d = typeof value === 'number' ? new Date(value) : new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  const date = d.toLocaleDateString('es-VE', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+  const time = d.toLocaleTimeString('es-VE', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+  return `${date}, ${time}`;
+}
+
 /** Formatea un precio en VES (bolívares) con separador de miles. */
 export function formatVes(v: string | number | null | undefined): string {
   return `Bs. ${formatAmount(v)}`;
+}
+
+/** ¿El string parece un hash/dirección on-chain (0x + hex)? */
+export function isHexHash(v: string | null | undefined): boolean {
+  return !!v && /^0x[0-9a-fA-F]{40,}$/.test(v.trim());
+}
+
+/** Acorta un hash on-chain largo: 0x1234abcd…ef567890. */
+export function shortenHash(h: string | null | undefined): string {
+  if (!h) return '';
+  return h.length > 18 ? `${h.slice(0, 10)}…${h.slice(-8)}` : h;
+}
+
+/** Etiqueta legible (es) para el tipo de movimiento del ledger. */
+export function paymentTypeLabel(type: string | null | undefined): string {
+  switch ((type || '').toLowerCase()) {
+    case 'deposit':
+      return 'Depósito';
+    case 'withdrawal':
+    case 'withdraw':
+      return 'Retiro';
+    case 'transfer':
+      return 'Transferencia';
+    case 'credit':
+      return 'Crédito';
+    case 'debit':
+      return 'Débito';
+    default:
+      return type ? type.charAt(0).toUpperCase() + type.slice(1) : 'Movimiento';
+  }
 }
 
 /** Etiqueta + color para un estado de pago. */

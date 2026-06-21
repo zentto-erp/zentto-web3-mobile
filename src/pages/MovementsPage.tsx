@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   IonContent,
   IonIcon,
@@ -10,11 +11,14 @@ import {
   arrowDownOutline,
   arrowUpOutline,
   addCircleOutline,
+  chevronForwardOutline,
 } from 'ionicons/icons';
 import ZenttoHeader from '../components/ZenttoHeader';
+import StatusChip from '../components/StatusChip';
+import TransactionDetailModal from '../components/TransactionDetailModal';
 import { ListSkeleton } from '../components/Skeletons';
 import { usePayments } from '../hooks/usePayments';
-import { formatAmount, formatDate, paymentStatusMeta } from '../lib/format';
+import { formatAmount, formatDate } from '../lib/format';
 import { tapLight } from '../lib/haptics';
 import type { Payment } from '../api/types';
 
@@ -28,6 +32,7 @@ function isInflow(p: Payment): boolean {
 export default function MovementsPage() {
   const payments = usePayments();
   const items = payments.data ?? [];
+  const [selected, setSelected] = useState<Payment | null>(null);
 
   return (
     <IonPage>
@@ -60,19 +65,27 @@ export default function MovementsPage() {
           ) : (
             <div className="zt-card zt-stagger" style={{ padding: '4px 16px' }}>
               {items.map((p) => (
-                <MovementRow key={p.id} p={p} />
+                <MovementRow
+                  key={p.id}
+                  p={p}
+                  onOpen={() => {
+                    tapLight();
+                    setSelected(p);
+                  }}
+                />
               ))}
             </div>
           )}
         </div>
       </IonContent>
+
+      <TransactionDetailModal payment={selected} onDismiss={() => setSelected(null)} />
     </IonPage>
   );
 }
 
-function MovementRow({ p }: { p: Payment }) {
+function MovementRow({ p, onOpen }: { p: Payment; onOpen: () => void }) {
   const inflow = isInflow(p);
-  const status = paymentStatusMeta(String(p.status));
   const icon =
     (p.type || '').toLowerCase() === 'credit'
       ? addCircleOutline
@@ -90,7 +103,7 @@ function MovementRow({ p }: { p: Payment }) {
         : `Enviado a ${p.counterparty ?? '—'}`;
 
   return (
-    <div className="zt-tx">
+    <button type="button" className="zt-tx zt-tx--tap" onClick={onOpen}>
       <div
         className="zt-tx-ic"
         style={inflow ? { color: 'var(--zt-success)', background: 'rgba(52,211,153,0.16)' } : undefined}
@@ -108,10 +121,10 @@ function MovementRow({ p }: { p: Payment }) {
           {sign}
           {formatAmount(p.amount)} {p.asset}
         </span>
-        <span className="zt-status-chip" style={{ color: status.color }}>
-          {status.label}
-        </span>
+        <StatusChip status={String(p.status)} />
       </div>
-    </div>
+
+      <IonIcon className="zt-tx-chevron" icon={chevronForwardOutline} aria-hidden="true" />
+    </button>
   );
 }

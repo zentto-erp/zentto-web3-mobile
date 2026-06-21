@@ -912,3 +912,275 @@ strong {
   font-size: 15px;
   font-weight: 700;
 }
+
+/* ════════════════════════════════════════════════════════════
+   FILA DE TRANSACCIÓN TOCABLE — botón con press-state sutil + chevron
+   ════════════════════════════════════════════════════════════ */
+.zt-tx--tap {
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--zt-border);
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  margin: 0 -4px;
+  padding: 14px 4px;
+  width: calc(100% + 8px);
+  border-radius: 12px;
+  transition: background 0.16s ease, transform 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.zt-tx--tap:last-child {
+  border-bottom: none;
+}
+.zt-tx--tap:active {
+  background: rgba(255, 255, 255, 0.035);
+  transform: scale(0.992);
+}
+
+.zt-tx-chevron {
+  flex: 0 0 auto;
+  font-size: 16px;
+  color: var(--zt-text-dim);
+  opacity: 0.45;
+  margin-left: 2px;
+}
+
+/* Chip de estado, variante grande (detalle). */
+.zt-status-chip--md {
+  font-size: 12.5px;
+  padding: 5px 11px;
+}
+
+/* ════════════════════════════════════════════════════════════
+   BOTTOM-SHEET — detalle de transacción (estilo Binance/Meru)
+   Handle arriba + breakpoints 0/0.9, fondo del tema y radios suaves.
+   ════════════════════════════════════════════════════════════ */
+.zt-sheet {
+  --background: var(--zt-bg-2);
+  --border-radius: 24px 24px 0 0;
+  --box-shadow: 0 -20px 50px -20px rgba(0, 0, 0, 0.6);
+  --backdrop-opacity: 0.55;
+}
+
+.zt-sheet::part(handle) {
+  background: var(--zt-border);
+  width: 38px;
+  height: 4px;
+  margin-top: 10px;
+}
+
+.zt-sheet-body {
+  padding: 22px 20px calc(26px + var(--zt-safe-bottom));
+  overflow-y: auto;
+  max-width: 560px;
+  margin: 0 auto;
+  width: 100%;
+  animation: zt-fade-up 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.zt-sheet-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  padding: 6px 0 18px;
+  border-bottom: 1px solid var(--zt-border);
+  margin-bottom: 4px;
+}
+
+.zt-sheet-close {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: var(--zt-card);
+  color: var(--zt-text-dim);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.zt-sheet-close:active {
+  transform: scale(0.9);
+  background: var(--zt-card-2);
+}
+
+.zt-sheet-ic {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  background: rgba(99, 102, 241, 0.16);
+  color: var(--zt-cyan);
+  margin-bottom: 12px;
+}
+
+.zt-sheet-type {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--zt-text);
+  margin-bottom: 10px;
+}
+
+.zt-sheet-amount {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  margin-top: 14px;
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.zt-sheet-asset {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--zt-text-dim);
+}
+
+.zt-sheet-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.32);
+  color: #fca5a5;
+  border-radius: 12px;
+  padding: 11px 13px;
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 14px 0 2px;
+}
+.zt-sheet-alert ion-icon {
+  font-size: 18px;
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.zt-sheet-list {
+  margin-top: 6px;
+}
+
+/* Fila clave/valor del detalle — divisor fino, valor a la derecha. */
+.zt-detail-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 0;
+  border-bottom: 1px solid rgba(40, 49, 86, 0.6);
+}
+.zt-detail-row:last-child {
+  border-bottom: none;
+}
+
+.zt-detail-k {
+  flex: 0 0 auto;
+  font-size: 13px;
+  color: var(--zt-text-dim);
+  padding-top: 2px;
+}
+
+.zt-detail-v {
+  flex: 1 1 auto;
+  text-align: right;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--zt-text);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+.zt-detail-v--break {
+  word-break: break-word;
+}
+
+/* Campo copiable (ID / hash) — mono + ícono copy, press sutil. */
+.zt-copy-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  background: var(--zt-card);
+  border: 1px solid var(--zt-border);
+  border-radius: 10px;
+  padding: 7px 10px;
+  cursor: pointer;
+  color: var(--zt-text);
+  transition: background 0.15s ease, transform 0.1s ease;
+  margin-left: auto;
+}
+.zt-copy-field:active {
+  transform: scale(0.97);
+  background: var(--zt-card-2);
+}
+
+.zt-copy-text {
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+.zt-copy-ic {
+  flex: 0 0 auto;
+  font-size: 16px;
+  color: var(--zt-cyan);
+}
+
+.zt-explorer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0 auto;
+  background: none;
+  border: none;
+  color: var(--zt-cyan);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+}
+.zt-explorer-link ion-icon {
+  font-size: 15px;
+}
+.zt-explorer-link:active {
+  opacity: 0.7;
+}
+
+.zt-sheet-foot {
+  margin: 18px 2px 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--zt-text-dim);
+  text-align: center;
+}
+
+/* Toast discreto — coherente con el tema (no bloqueante). */
+.zt-toast {
+  --border-radius: 12px;
+  --box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.6);
+  font-weight: 500;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zt-sheet-body {
+    animation: none;
+  }
+  .zt-tx--tap,
+  .zt-copy-field,
+  .zt-sheet-close {
+    transition: none;
+  }
+}

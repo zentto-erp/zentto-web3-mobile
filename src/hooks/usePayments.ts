@@ -4,6 +4,7 @@ import {
   fetchAccountBalance,
   fetchDepositInfo,
   fetchDeposits,
+  fetchPayment,
   fetchPayments,
   transfer,
   withdraw,
@@ -40,6 +41,20 @@ export function usePayments() {
     queryFn: fetchPayments,
     refetchInterval: 15_000,
     retry: false,
+  });
+}
+
+/**
+ * Detalle de un movimiento por id. Solo corre cuando `id` está presente
+ * (la hoja de detalle está abierta). Hidrata con el item de la lista si lo hay.
+ */
+export function usePayment(id: string | null | undefined) {
+  return useQuery<Payment>({
+    queryKey: ['payments', 'detail', id],
+    queryFn: () => fetchPayment(id as string),
+    enabled: !!id,
+    retry: false,
+    staleTime: 30_000,
   });
 }
 

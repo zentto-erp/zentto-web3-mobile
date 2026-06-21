@@ -129,6 +129,8 @@ export interface DepositInfo {
   chainId?: number;
   nativeSymbol?: string;
   address: string;
+  /** Solo en redes tipo Stellar: memo OBLIGATORIO para enrutar el depósito. */
+  memo?: string;
   asset: string;
   token: string;
   explorerUrl: string;

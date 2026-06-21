@@ -166,8 +166,38 @@ export default function ReceivePage() {
                 <QrCode value={info.address} size={220} />
               </div>
               <div className="zt-card">
-                <h3>Dirección de depósito ({info.asset} · USDC)</h3>
+                <h3>Dirección de depósito ({info.asset})</h3>
                 <p className="zt-mono">{info.address}</p>
+
+                {/* MEMO obligatorio (Stellar): sin él no se puede acreditar el depósito */}
+                {info.memo && (
+                  <div
+                    className="zt-banner"
+                    style={{
+                      background: 'rgba(251,191,36,0.10)',
+                      borderColor: 'rgba(251,191,36,0.35)',
+                      color: 'var(--zt-warning)',
+                      margin: '8px 0',
+                    }}
+                  >
+                    <div className="zt-row" style={{ borderBottom: 'none', padding: 0 }}>
+                      <span style={{ fontWeight: 600 }}>⚠️ MEMO obligatorio</span>
+                      <button
+                        type="button"
+                        className="zt-link"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                        onClick={() => copyText(String(info.memo), 'Memo')}
+                      >
+                        <strong className="zt-mono">{info.memo}</strong>
+                        <IonIcon icon={copyOutline} />
+                      </button>
+                    </div>
+                    <p style={{ margin: '4px 0 0', fontSize: 12 }}>
+                      Incluye este memo al enviar; sin él no podremos acreditar tu depósito.
+                    </p>
+                  </div>
+                )}
+
                 {info.note && (
                   <p className="zt-muted" style={{ margin: '0 0 8px', fontSize: 13 }}>
                     {info.note}

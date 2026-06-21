@@ -21,6 +21,7 @@ import {
 import SettingsMenu from './components/SettingsMenu';
 import LockScreen from './components/LockScreen';
 import { useAuth } from './auth/AuthContext';
+import { useIncomingNotifications } from './hooks/useIncomingNotifications';
 import { useLock } from './auth/LockContext';
 import { selection } from './lib/haptics';
 import LoginPage from './pages/LoginPage';
@@ -53,6 +54,12 @@ function FullScreenLoader() {
       <IonSpinner name="crescent" color="primary" />
     </div>
   );
+}
+
+/** Vigila el historial y dispara notificaciones locales al recibir dinero. */
+function NotificationsWatcher() {
+  useIncomingNotifications();
+  return null;
 }
 
 export default function App() {
@@ -99,6 +106,7 @@ export default function App() {
   // Con sesión → app con bottom tabs + side drawer de configuración.
   return (
     <IonApp>
+      <NotificationsWatcher />
       <IonReactRouter>
         {/* Side drawer: hermano del contenido enrutado (contentId="main"). */}
         <SettingsMenu />

@@ -21,7 +21,7 @@ import { closeOutline, trendingUpOutline } from 'ionicons/icons';
 import { useAccountBalance } from '../hooks/usePayments';
 import { useCreateP2pOrder, useMarketRate } from '../hooks/useP2p';
 import { usePaymentMethods } from '../hooks/usePaymentMethods';
-import { paymentMethodToText } from '../lib/paymentMethod';
+import { paymentMethodPublicLabel, paymentMethodToText } from '../lib/paymentMethod';
 import { formatAmount, formatVes } from '../lib/format';
 import { ApiError } from '../api/client';
 import type { P2pSide } from '../api/types';
@@ -79,7 +79,14 @@ export default function PublishOfferModal({
     [methods.data, methodId],
   );
 
-  const paymentMethodText =
+  // Etiqueta PÚBLICA (visible en el libro) vs. datos COMPLETOS (revelados al tomar).
+  const paymentLabel =
+    methodId === '__custom__'
+      ? customMethod.trim().split('·')[0].slice(0, 60).trim()
+      : selectedMethod
+        ? paymentMethodPublicLabel(selectedMethod)
+        : '';
+  const paymentDetails =
     methodId === '__custom__'
       ? customMethod.trim()
       : selectedMethod
@@ -105,7 +112,8 @@ export default function PublishOfferModal({
         asset,
         amount: amount.trim(),
         priceVes: priceVes.trim(),
-        paymentMethod: paymentMethodText || undefined,
+        paymentMethod: paymentLabel || undefined,
+        paymentDetails: paymentDetails || undefined,
       });
       present({ message: 'Oferta publicada', duration: 1600, color: 'success' });
       reset();
@@ -263,10 +271,14 @@ export default function PublishOfferModal({
             </IonItem>
           )}
 
-          {selectedMethod && methodId !== '__custom__' && (
+          {paymentLabel && (
             <div className="zt-card">
-              <h3>La contraparte verá</h3>
-              <p className="zt-mono">{paymentMethodToText(selectedMethod)}</p>
+              <h3>En el mercado se verá</h3>
+              <p className="zt-mono">{paymentLabel}</p>
+              <p className="zt-muted" style={{ margin: '6px 0 0', fontSize: 12 }}>
+                🔒 Tus datos completos (cuenta/teléfono) solo se revelan a la contraparte
+                cuando acepte la operación.
+              </p>
             </div>
           )}
 

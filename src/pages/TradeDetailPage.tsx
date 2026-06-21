@@ -17,7 +17,9 @@ import {
   alertCircleOutline,
   cameraOutline,
   checkmarkCircleOutline,
+  copyOutline,
   imageOutline,
+  lockClosedOutline,
   sendOutline,
   timeOutline,
 } from 'ionicons/icons';
@@ -33,6 +35,7 @@ import { useAuth } from '../auth/AuthContext';
 import { ApiError } from '../api/client';
 import { formatAmount, formatDateTime, formatVes, shortenAddress } from '../lib/format';
 import { imageToCompressedDataUrl, tryNativeCamera } from '../lib/capture';
+import { copyText } from '../lib/clipboard';
 import { tapLight, notifySuccess, notifyError } from '../lib/haptics';
 import type { P2pTradeStatus } from '../api/types';
 
@@ -109,6 +112,11 @@ export default function TradeDetailPage({ tradeId }: { tradeId: string }) {
 
   function errMsg(err: unknown, fallback: string) {
     return err instanceof ApiError ? err.message : fallback;
+  }
+
+  async function copy(text: string) {
+    const ok = await copyText(text);
+    present({ message: ok ? 'Datos de pago copiados' : 'No se pudo copiar', duration: 1200, color: ok ? 'success' : 'danger' });
   }
 
   async function onMarkPaid() {
@@ -252,6 +260,53 @@ export default function TradeDetailPage({ tradeId }: { tradeId: string }) {
                   <span className="zt-muted">{formatDateTime(trade.createdAt)}</span>
                 </div>
               </div>
+
+              {/* Datos de pago revelados (solo tras aceptar la operación) */}
+              {trade.paymentDetails ? (
+                <div
+                  className="zt-card"
+                  style={{ borderColor: 'rgba(34,211,238,0.35)', background: 'rgba(34,211,238,0.06)' }}
+                >
+                  <div className="zt-row" style={{ borderBottom: 'none' }}>
+                    <span className="zt-token" style={{ alignItems: 'center', gap: 6 }}>
+                      <IonIcon icon={lockClosedOutline} style={{ color: 'var(--zt-cyan)' }} />
+                      <strong>Datos para pagar</strong>
+                    </span>
+                    <IonButton fill="clear" size="small" onClick={() => copy(trade.paymentDetails as string)}>
+                      <IonIcon slot="start" icon={copyOutline} />
+                      Copiar
+                    </IonButton>
+                  </div>
+                  {trade.paymentMethod && (
+                    <p className="zt-muted" style={{ margin: '2px 0 6px' }}>{trade.paymentMethod}</p>
+                  )}
+                  <p className="zt-mono" style={{ margin: 0, wordBreak: 'break-word' }}>
+                    {trade.paymentDetails}
+                  </p>
+                  <p className="zt-muted" style={{ margin: '8px 0 0', fontSize: 11.5 }}>
+                    {isSeller
+                      ? 'Estos son tus datos compartidos con el comprador.'
+                      : 'Paga exactamente a estos datos y marca el pago cuando termines.'}
+                  </p>
+                </div>
+              ) : (
+                isOpen && (
+                  <div
+                    className="zt-banner"
+                    style={{
+                      background: 'rgba(255,255,255,0.04)',
+                      borderColor: 'rgba(255,255,255,0.10)',
+                      color: 'var(--zt-text-dim)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}
+                  >
+                    <IonIcon icon={lockClosedOutline} />
+                    La contraparte no registró datos de pago; coordínalos por el chat.
+                  </div>
+                )
+              )}
 
               {/* Contador de la ventana de tiempo (escrow) */}
               {countdown && (

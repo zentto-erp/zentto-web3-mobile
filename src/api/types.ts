@@ -263,6 +263,9 @@ export interface P2pTrade {
   disputeReason?: string | null;
   disputeBy?: string | null;
   resolution?: string | null;
+  /** Datos de pago de la contraparte — solo presentes tras tomar la oferta. */
+  paymentMethod?: string | null;
+  paymentDetails?: string | null;
   createdAt: string | number;
   [k: string]: unknown;
 }
@@ -272,7 +275,8 @@ export interface CreateP2pOrderInput {
   asset: string; // USDT | USDC
   amount: string;
   priceVes: string;
-  paymentMethod?: string;
+  paymentMethod?: string; // etiqueta pública (banco/método)
+  paymentDetails?: string; // datos completos (privados, se revelan al tomar)
 }
 
 // ── Métodos de cobro (Pago Móvil / cuenta bancaria) ──

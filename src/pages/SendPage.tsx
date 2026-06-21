@@ -74,10 +74,11 @@ export default function SendPage() {
   const deleteAddressMut = useDeleteWithdrawAddress();
   const feesQuery = useFees();
 
-  // Redes disponibles (estilo Meru: selector de red para retirar).
+  // Redes disponibles para RETIRO: solo EVM por ahora (Tron/Stellar habilitan depósito,
+  // los retiros no-EVM llegan en una próxima fase).
   const networks = useMemo(() => networksQuery.data ?? [], [networksQuery.data]);
   const selectableNetworks = useMemo(
-    () => networks.filter((n) => n.available && n.enabled),
+    () => networks.filter((n) => n.available && n.enabled && n.family === 'evm'),
     [networks],
   );
 

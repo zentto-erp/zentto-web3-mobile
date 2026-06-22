@@ -23,7 +23,6 @@ import {
   cardOutline,
   lockClosedOutline,
   documentTextOutline,
-  compassOutline,
 } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
@@ -156,13 +155,8 @@ export default function SettingsMenu() {
             <IonLabel>Preferencias</IonLabel>
           </IonListHeader>
 
-          <IonMenuToggle autoHide={false}>
-            <IonItem button detail={false} onClick={() => go('/explore')}>
-              <IonIcon slot="start" icon={compassOutline} color="primary" />
-              <IonLabel>Explorar red</IonLabel>
-              <IonIcon slot="end" icon={chevronForwardOutline} className="zt-menu-chevron" />
-            </IonItem>
-          </IonMenuToggle>
+          {/* "Explorar red" oculto: la exploración on-chain es interna (custodial);
+              el usuario no necesita ver la cadena. */}
 
           <IonItem detail={false}>
             <IonIcon slot="start" icon={globeOutline} className="zt-menu-icon-dim" />

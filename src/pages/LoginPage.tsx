@@ -61,7 +61,7 @@ export default function LoginPage() {
           <div className="zt-brand zt-enter">
             <div className="zt-logo">Z</div>
             <h1>Zentto</h1>
-            <p>Tu neobanco cripto. Saldos en USD, respaldo en testnet real.</p>
+            <p>El centro de tu dinero digital. Dólares con respaldo real.</p>
           </div>
 
           {!mfaToken ? (

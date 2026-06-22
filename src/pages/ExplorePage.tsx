@@ -48,8 +48,7 @@ export default function ExplorePage() {
       <IonContent className="zt-page" fullscreen>
         <div className="zt-screen">
           <div className="zt-banner" style={{ background: 'rgba(99,102,241,0.12)', borderColor: 'rgba(99,102,241,0.35)', color: '#c7d2fe' }}>
-            Vista secundaria de exploración on-chain (Sepolia testnet). Tu saldo real está en
-            Inicio (ledger del neobanco).
+            Vista secundaria de exploración on-chain. Tu saldo real está en Inicio.
           </div>
 
           <div className="zt-card">

@@ -47,7 +47,7 @@ export default function LegalPage({ slug: propSlug }: { slug?: string }) {
           ))}
 
           <p className="zt-muted" style={{ margin: '28px 0 12px', textAlign: 'center' }}>
-            Zentto Web3 · neobanco cripto
+            Zentto Web3 · el centro de tu dinero digital
           </p>
         </div>
       </IonContent>

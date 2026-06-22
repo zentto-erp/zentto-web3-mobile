@@ -12,7 +12,6 @@ import {
 import {
   copyOutline,
   qrCodeOutline,
-  openOutline,
   downloadOutline,
   shareSocialOutline,
 } from 'ionicons/icons';
@@ -225,16 +224,6 @@ export default function ReceivePage() {
                     Compartir
                   </IonButton>
                 </div>
-                <IonButton
-                  expand="block"
-                  fill="clear"
-                  href={info.explorerUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <IonIcon slot="start" icon={openOutline} />
-                  Ver en el explorador
-                </IonButton>
               </div>
             </>
           )}
@@ -253,7 +242,7 @@ export default function ReceivePage() {
             ) : items.length === 0 ? (
               <div className="zt-empty" style={{ padding: '24px 8px' }}>
                 <IonIcon icon={downloadOutline} />
-                <p>Aún no hay depósitos. Envía USDC de testnet a tu dirección.</p>
+                <p>Aún no hay depósitos. Envía USDT o USDC a tu dirección.</p>
               </div>
             ) : (
               items.map((d) => (
@@ -264,7 +253,7 @@ export default function ReceivePage() {
                       <div>
                         {formatAmount(d.amount)} {d.asset}
                       </div>
-                      <div className="zt-muted">{shortHash(d.txHash)}</div>
+                      <div className="zt-muted">ID {shortHash(d.paymentId ?? d.id)}</div>
                     </div>
                   </div>
                   <span

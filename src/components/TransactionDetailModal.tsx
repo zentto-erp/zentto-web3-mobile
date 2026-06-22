@@ -5,28 +5,19 @@ import {
   addCircleOutline,
   swapHorizontalOutline,
   copyOutline,
-  openOutline,
   closeOutline,
   alertCircleOutline,
 } from 'ionicons/icons';
 import StatusChip from './StatusChip';
 import { usePayment } from '../hooks/usePayments';
-import {
-  formatAmount,
-  formatDateTime,
-  isHexHash,
-  paymentTypeLabel,
-  shortenHash,
-} from '../lib/format';
+import { formatAmount, formatDateTime, isHexHash, paymentTypeLabel } from '../lib/format';
 import { feeInfoOf, hasFeeInfo } from '../lib/fees';
 import { copyText } from '../lib/clipboard';
-import { openExternal } from '../lib/browser';
 import { tapLight, notifySuccess, notifyError } from '../lib/haptics';
 import type { Payment } from '../api/types';
 
 // Tipos que representan entrada de saldo (signo +).
 const INFLOW = new Set(['credit', 'deposit', 'receive', 'in']);
-const EXPLORER_TX = 'https://sepolia.etherscan.io/tx/';
 
 function isInflow(p: Payment): boolean {
   return INFLOW.has((p.type || '').toLowerCase());
@@ -37,15 +28,6 @@ function iconFor(p: Payment) {
   if (t === 'credit') return addCircleOutline;
   if (t === 'transfer') return swapHorizontalOutline;
   return isInflow(p) ? arrowDownOutline : arrowUpOutline;
-}
-
-/** Extrae el hash on-chain del pago: metadata.txHash o counterparty 0x…. */
-function txHashOf(p: Payment): string | null {
-  const meta = (p as { metadata?: Record<string, unknown> }).metadata;
-  const fromMeta = meta && typeof meta.txHash === 'string' ? meta.txHash : null;
-  if (fromMeta && fromMeta.startsWith('0x')) return fromMeta;
-  if (isHexHash(p.counterparty)) return p.counterparty as string;
-  return null;
 }
 
 /** Motivo del fallo si lo hay (failureReason o metadata.failureReason). */
@@ -95,15 +77,9 @@ export default function TransactionDetailModal({
     }
   }
 
-  async function viewOnExplorer(hash: string) {
-    tapLight();
-    await openExternal(`${EXPLORER_TX}${hash}`);
-  }
-
   const inflow = p ? isInflow(p) : false;
   const sign = inflow ? '+' : '−';
   const amountColor = inflow ? 'var(--zt-success)' : 'var(--zt-danger)';
-  const hash = p ? txHashOf(p) : null;
   const failure = p ? failureReasonOf(p) : null;
   const fees = p ? feeInfoOf(p) : null;
   const showFees = !!fees && hasFeeInfo(fees);
@@ -236,31 +212,8 @@ export default function TransactionDetailModal({
               </button>
             </div>
 
-            {/* Hash on-chain (si es depósito/retiro on-chain) */}
-            {hash && (
-              <div className="zt-detail-row">
-                <span className="zt-detail-k">Hash on-chain</span>
-                <div className="zt-detail-v" style={{ width: '100%' }}>
-                  <button
-                    type="button"
-                    className="zt-copy-field"
-                    onClick={() => copyValue(hash, 'Hash')}
-                    aria-label="Copiar hash on-chain"
-                  >
-                    <span className="zt-mono zt-copy-text">{shortenHash(hash)}</span>
-                    <IonIcon icon={copyOutline} className="zt-copy-ic" />
-                  </button>
-                  <button
-                    type="button"
-                    className="zt-explorer-link"
-                    onClick={() => viewOnExplorer(hash)}
-                  >
-                    <IonIcon icon={openOutline} />
-                    Ver en explorer
-                  </button>
-                </div>
-              </div>
-            )}
+            {/* On-chain oculto al usuario: es custodial. El operador ve el hash en
+                el backoffice a partir de este ID interno. */}
           </div>
 
           <p className="zt-sheet-foot">

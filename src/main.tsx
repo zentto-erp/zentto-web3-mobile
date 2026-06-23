@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Capacitor } from '@capacitor/core';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { setupStatusBar } from './lib/statusBar';
+import { setupMobileKeyboard } from './lib/keyboard';
 
 /* Core CSS de Ionic — obligatorio */
 import '@ionic/react/css/core.css';
@@ -27,6 +28,7 @@ import { AuthProvider } from './auth/AuthContext';
 import { LockProvider } from './auth/LockContext';
 
 setupIonicReact({ mode: 'md', animated: true });
+setupMobileKeyboard();
 
 // Init nativo: status bar + ocultar splash. Import ESTÁTICO de los plugins
 // (Vite los empaqueta); las LLAMADAS se guardan con isNativePlatform().

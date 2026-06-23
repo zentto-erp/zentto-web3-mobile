@@ -9,6 +9,7 @@ const config: CapacitorConfig = {
   },
   plugins: {
     Keyboard: {
+      resize: 'native' as any,   // el webview se achica → el campo enfocado sube y no queda tapado
       resizeOnFullScreen: true,
     },
     SplashScreen: {

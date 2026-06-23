@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import PageRefresher from '../components/PageRefresher';
 import {
   IonButton,
   IonContent,
@@ -81,6 +82,7 @@ export default function ReceivePage() {
     <IonPage>
       <ZenttoHeader title="Recibir" />
       <IonContent className="zt-page" fullscreen>
+        <PageRefresher />
         <div className="zt-screen">
           <div
             className="zt-banner"

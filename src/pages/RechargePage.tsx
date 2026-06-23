@@ -1,4 +1,5 @@
 import { IonContent, IonIcon, IonPage, useIonToast } from '@ionic/react';
+import PageRefresher from '../components/PageRefresher';
 import { useHistory } from 'react-router-dom';
 import {
   cardOutline,
@@ -46,6 +47,7 @@ export default function RechargePage() {
     <IonPage>
       <ZenttoHeader title="Recargar" showProfile={false} />
       <IonContent className="zt-page" fullscreen>
+        <PageRefresher />
         <div className="zt-screen">
           <p className="zt-muted" style={{ marginTop: 8 }}>
             Elige cómo quieres ingresar dinero a tu cuenta. Tu saldo se mantiene en USDC/USDT

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
+import PageRefresher from '../components/PageRefresher';
 import {
   IonButton,
   IonContent,
@@ -142,6 +143,7 @@ export default function P2pPage() {
     <IonPage>
       <ZenttoHeader title="P2P" />
       <IonContent className="zt-page" fullscreen>
+        <PageRefresher />
         <div className="zt-screen">
           <IonSegment
             value={tab}

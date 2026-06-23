@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PageRefresher from '../components/PageRefresher';
 import {
   IonButton,
   IonContent,
@@ -76,6 +77,7 @@ export default function SecurityPage() {
     <IonPage>
       <ZenttoHeader title="Seguridad · 2FA" />
       <IonContent className="zt-page" fullscreen>
+        <PageRefresher />
         <div className="zt-screen">
           <div className="zt-card" style={{ marginTop: 8 }}>
             <div className="zt-row" style={{ borderBottom: 'none' }}>

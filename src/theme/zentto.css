@@ -1327,6 +1327,9 @@ strong {
   margin: 14px 4px 6px;
 }
 
+/* Placeholder tenue (no parezca que el campo ya está lleno) */
+ion-input, ion-textarea, ion-searchbar { --placeholder-color: var(--zt-text-dim); --placeholder-opacity: 0.5; }
+
 /* ════════ Soporte AI flotante (FAB + chat estilo Telegram) ════════ */
 .zt-support-fab { position: fixed; right: 16px; bottom: calc(72px + env(safe-area-inset-bottom)); z-index: 50; width: 52px; height: 52px; border-radius: 999px; border: none; background: var(--ion-color-primary); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(99, 102, 241, 0.45); cursor: pointer; }
 .zt-support-fab ion-icon { font-size: 26px; }

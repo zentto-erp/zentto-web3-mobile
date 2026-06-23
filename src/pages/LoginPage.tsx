@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   IonButton,
   IonContent,
+  IonIcon,
   IonInput,
   IonItem,
   IonNote,
@@ -9,25 +10,35 @@ import {
   IonSpinner,
   IonText,
 } from '@ionic/react';
+import { eyeOffOutline, eyeOutline } from 'ionicons/icons';
+import { Preferences } from '@capacitor/preferences';
 import { Link } from 'react-router-dom';
 import { login, loginTwoFactor } from '../api/auth';
 import { useAuth } from '../auth/AuthContext';
 import { ApiError } from '../api/client';
+import { hideKeyboard } from '../lib/keyboard';
 
 export default function LoginPage() {
   const { setUser } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPass, setShowPass] = useState(false);
   const [code, setCode] = useState('');
   const [mfaToken, setMfaToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    Preferences.get({ key: 'zt_email' }).then(({ value }) => value && setEmail(value));
+  }, []);
+
   async function handleLogin() {
+    hideKeyboard();
     setError(null);
     setBusy(true);
     try {
       const res = await login(email.trim(), password);
+      await Preferences.set({ key: 'zt_email', value: email.trim() });
       if (res.mfaRequired && res.mfaToken) {
         setMfaToken(res.mfaToken);
       } else if (res.user) {
@@ -42,6 +53,7 @@ export default function LoginPage() {
 
   async function handle2fa() {
     if (!mfaToken) return;
+    hideKeyboard();
     setError(null);
     setBusy(true);
     try {
@@ -82,11 +94,19 @@ export default function LoginPage() {
                 <IonInput
                   label="Contraseña"
                   labelPlacement="stacked"
-                  type="password"
+                  type={showPass ? 'text' : 'password'}
                   value={password}
                   onIonInput={(e) => setPassword(e.detail.value ?? '')}
+                  onKeyDown={(e) => e.key === 'Enter' && email && password && handleLogin()}
                   placeholder="••••••••"
-                />
+                >
+                  <IonIcon
+                    slot="end"
+                    icon={showPass ? eyeOffOutline : eyeOutline}
+                    onClick={() => setShowPass((s) => !s)}
+                    style={{ color: 'var(--zt-text-dim)', cursor: 'pointer' }}
+                  />
+                </IonInput>
               </IonItem>
 
               {error && (

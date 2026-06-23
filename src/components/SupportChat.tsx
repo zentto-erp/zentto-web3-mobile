@@ -2,6 +2,7 @@ import {
   IonButton,
   IonButtons,
   IonContent,
+  IonFooter,
   IonHeader,
   IonIcon,
   IonInput,
@@ -14,6 +15,7 @@ import { chatbubbleEllipsesOutline, close, flash, sendOutline } from 'ionicons/i
 import { useEffect, useRef, useState } from 'react';
 
 import { tapLight } from '../lib/haptics';
+import { hideKeyboard } from '../lib/keyboard';
 import { loadHistory, saveHistory, streamSupport, type SupportMsg } from '../lib/support';
 
 export default function SupportChat() {
@@ -34,6 +36,7 @@ export default function SupportChat() {
   const send = async () => {
     const q = text.trim();
     if (!q || busy) return;
+    hideKeyboard();
     setText('');
     setMsgs((m) => [...m, { role: 'user', text: q, ts: Date.now() }, { role: 'assistant', text: '', ts: Date.now() }]);
     setBusy(true);
@@ -69,7 +72,7 @@ export default function SupportChat() {
         <IonIcon icon={chatbubbleEllipsesOutline} />
       </button>
 
-      <IonModal isOpen={open} onDidDismiss={() => setOpen(false)} breakpoints={[0, 0.92]} initialBreakpoint={0.92} handle>
+      <IonModal className="zt-support-modal" isOpen={open} onDidDismiss={() => setOpen(false)} breakpoints={[0, 0.8]} initialBreakpoint={0.8} handle>
         <IonHeader>
           <IonToolbar className="zt-support-bar">
             <div slot="start" className="zt-support-ava"><IonIcon icon={flash} /></div>
@@ -106,18 +109,20 @@ export default function SupportChat() {
             ))}
           </div>
         </IonContent>
-        <div className="zt-chat-input">
-          <IonInput
-            value={text}
-            placeholder="Pregúntame sobre tu cuenta, P2P…"
-            onIonInput={(e) => setText(e.detail.value ?? '')}
-            onKeyDown={(e) => e.key === 'Enter' && send()}
-          />
-          <button className="zt-chat-send" onClick={send} disabled={busy || !text.trim()}>
-            {busy ? <IonSpinner name="dots" /> : <IonIcon icon={sendOutline} />}
-          </button>
-        </div>
-        <div className="zt-chat-foot">Powered by <b>Zentto Notify</b></div>
+        <IonFooter className="zt-chat-footer">
+          <div className="zt-chat-input">
+            <IonInput
+              value={text}
+              placeholder="Pregúntame sobre tu cuenta, P2P…"
+              onIonInput={(e) => setText(e.detail.value ?? '')}
+              onKeyDown={(e) => e.key === 'Enter' && send()}
+            />
+            <button className="zt-chat-send" onClick={send} disabled={busy || !text.trim()}>
+              {busy ? <IonSpinner name="dots" /> : <IonIcon icon={sendOutline} />}
+            </button>
+          </div>
+          <div className="zt-chat-foot">Powered by <b>Zentto Notify</b></div>
+        </IonFooter>
       </IonModal>
     </>
   );

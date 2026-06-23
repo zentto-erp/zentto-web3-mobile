@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import PageRefresher from '../components/PageRefresher';
 import {
   IonButton,
   IonContent,
@@ -87,6 +88,7 @@ export default function ProfilePage() {
     <IonPage>
       <ZenttoHeader title="Perfil" showProfile={false} />
       <IonContent className="zt-page" fullscreen>
+        <PageRefresher />
         <div className="zt-screen">
           <div style={{ textAlign: 'center', marginTop: 20 }}>
             <IonIcon

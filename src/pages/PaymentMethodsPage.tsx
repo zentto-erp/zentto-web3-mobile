@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PageRefresher from '../components/PageRefresher';
 import {
   IonButton,
   IonButtons,
@@ -76,6 +77,7 @@ export default function PaymentMethodsPage() {
     <IonPage>
       <ZenttoHeader title="Métodos de cobro" showProfile={false} />
       <IonContent className="zt-page" fullscreen>
+        <PageRefresher />
         <div className="zt-screen">
           <p className="zt-muted" style={{ marginTop: 8 }}>
             Guarda tus datos de Pago Móvil o cuenta bancaria. Los podrás adjuntar a tus ofertas P2P

@@ -23,7 +23,10 @@ import {
   cardOutline,
   lockClosedOutline,
   documentTextOutline,
+  informationCircleOutline,
+  openOutline,
 } from 'ionicons/icons';
+import { Browser } from '@capacitor/browser';
 import { useHistory } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useKycStatus } from '../hooks/useKyc';
@@ -195,6 +198,20 @@ export default function SettingsMenu() {
               <IonIcon slot="end" icon={chevronForwardOutline} className="zt-menu-chevron" />
             </IonItem>
           </IonMenuToggle>
+
+          <IonMenuToggle autoHide={false}>
+            <IonItem button detail={false} onClick={() => go('/about')}>
+              <IonIcon slot="start" icon={informationCircleOutline} color="primary" />
+              <IonLabel>Acerca de Zentto</IonLabel>
+              <IonIcon slot="end" icon={chevronForwardOutline} className="zt-menu-chevron" />
+            </IonItem>
+          </IonMenuToggle>
+
+          <IonItem button detail={false} onClick={() => void Browser.open({ url: 'https://zentto.net' })}>
+            <IonIcon slot="start" icon={openOutline} color="primary" />
+            <IonLabel>Conoce el ecosistema Zentto</IonLabel>
+            <IonIcon slot="end" icon={openOutline} className="zt-menu-chevron" />
+          </IonItem>
         </IonList>
 
         <div className="zt-menu-footer">

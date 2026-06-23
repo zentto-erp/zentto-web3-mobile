@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Zentto</string>
+    <string name="title_activity_main">Zentto</string>
+    <string name="package_name">net.zentto.web3app</string>
+    <string name="custom_url_scheme">net.zentto.web3app</string>
+</resources>

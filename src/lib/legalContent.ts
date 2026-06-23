@@ -14,6 +14,41 @@ export interface LegalDoc {
   sections: LegalSection[];
 }
 
+// Datos legales de la empresa operadora (los mismos en todas las apps Zentto).
+export const COMPANY = {
+  legalName: 'ZENTTO GLOBAL TECHNOLOGY, C.A.',
+  rif: 'J-50849797-0',
+  country: 'Venezuela',
+  activity:
+    'empresa venezolana de tecnología dedicada al desarrollo de software y soluciones informáticas en la nube',
+  ecosystem:
+    'Desarrollamos el ecosistema Zentto: ERP en la nube para empresas, soluciones verticales por industria (hotelería, salud, educación, tickets, alquiler), herramientas para desarrolladores y productos de finanzas digitales',
+  email: 'soporte@zentto.net',
+  privacyEmail: 'privacidad@zentto.net',
+  site: 'zentto.net',
+};
+
+// Redes sociales del ecosistema Zentto.
+export const SOCIAL = {
+  instagram: 'https://instagram.com/appzenttonet',
+  x: 'https://x.com/appzentto',
+  linkedin: 'https://www.linkedin.com/in/zentto-global-technology-c-a-a19701418/',
+  facebook: 'https://www.facebook.com/profile.php?id=61578642394018',
+};
+
+// ID del paquete en Play Store (para "Calificar").
+export const PLAY_STORE_ID = 'net.zentto.web3app';
+
+// Reportar una falla → abre el formulario de zentto-support (dispara el CI/CD que
+// triagea con IA y deriva al departamento). module=Mobile prellenado.
+export function bugReportUrl(appLabel: string, version: string): string {
+  const body = `Reporte desde ${appLabel} v${version}.\n\n`;
+  return (
+    'https://github.com/zentto-erp/zentto-support/issues/new' +
+    `?template=bug_report.yml&module=Mobile&description=${encodeURIComponent(body)}`
+  );
+}
+
 export const LEGAL_DOCS: Record<LegalDoc['slug'], LegalDoc> = {
   terminos: {
     slug: 'terminos',
@@ -22,6 +57,14 @@ export const LEGAL_DOCS: Record<LegalDoc['slug'], LegalDoc> = {
     intro:
       'Lee atentamente estos Términos antes de utilizar Zentto. Definen tus derechos y obligaciones como usuario del servicio.',
     sections: [
+      {
+        heading: 'Identificación del operador',
+        paragraphs: [
+          'La aplicación Zentto Web3 es desarrollada y operada por ZENTTO GLOBAL TECHNOLOGY, C.A., empresa venezolana identificada con el RIF J-50849797-0, dedicada al desarrollo de software y soluciones informáticas en la nube (en adelante, “el Operador”).',
+          'El Operador desarrolla el ecosistema Zentto, que incluye un ERP empresarial, soluciones verticales por industria, herramientas para desarrolladores y productos de finanzas digitales como esta aplicación.',
+          'Zentto Web3 es un producto tecnológico en fase de desarrollo. La Plataforma se ofrece como herramienta de software; no constituye, por sí misma, una entidad bancaria, casa de cambio ni institución financiera regulada.',
+        ],
+      },
       {
         heading: 'Objeto y aceptación',
         paragraphs: [
@@ -83,7 +126,7 @@ export const LEGAL_DOCS: Record<LegalDoc['slug'], LegalDoc> = {
       {
         heading: 'Responsable del tratamiento',
         paragraphs: [
-          'El operador de Zentto Web3 es el responsable del tratamiento de los datos personales que recopila a través de la Plataforma. Esta Política explica qué datos tratamos, con qué finalidad, sobre qué base legal y qué derechos te asisten.',
+          'El responsable del tratamiento de los datos personales recopilados a través de la Plataforma es ZENTTO GLOBAL TECHNOLOGY, C.A. (RIF J-50849797-0), empresa venezolana dedicada al desarrollo de software. Esta Política explica qué datos tratamos, con qué finalidad, sobre qué base legal y qué derechos te asisten.',
         ],
       },
       {

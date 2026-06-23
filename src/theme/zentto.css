@@ -1393,6 +1393,23 @@ ion-input[type='number'], ion-input[inputmode='numeric'], ion-input[inputmode='d
 /* Check "recordar usuario y clave" en login */
 .zt-remember { --background: transparent; --min-height: 0; --padding-start: 4px; --inner-padding-end: 0; margin-top: 8px; font-size: 13.5px; color: var(--zt-text-dim); }
 .zt-remember ion-checkbox { --size: 18px; --checkbox-background-checked: var(--zt-indigo); --border-color-checked: var(--zt-indigo); --border-radius: 5px; }
+
+/* Página Acerca de */
+.zt-about-brand { text-align: center; padding: 16px 0 6px; display: flex; flex-direction: column; align-items: center; }
+.zt-about-brand h1 { font-size: 22px; margin: 10px 0 2px; }
+.zt-about-dev { margin-top: 8px; font-size: 11px; font-weight: 700; color: var(--zt-indigo); background: rgba(99, 102, 241, 0.13); padding: 3px 10px; border-radius: 999px; }
+.zt-about-row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; color: var(--zt-text); text-decoration: none; border-bottom: 1px solid var(--zt-border); }
+.zt-about-row:last-child { border-bottom: none; }
+.zt-about-row > ion-icon:first-child { color: var(--zt-indigo); font-size: 20px; }
+.zt-about-row span { flex: 1; font-size: 14.5px; }
+.zt-about-go { color: var(--zt-text-dim); font-size: 18px; }
+.zt-social { margin: 22px 0 6px; }
+.zt-social-row { display: flex; justify-content: center; gap: 14px; }
+.zt-social-row button { width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--zt-border); background: var(--zt-card-2); color: var(--zt-text); display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; }
+.zt-social-row button:active { background: rgba(99, 102, 241, 0.13); border-color: var(--zt-indigo); color: var(--zt-indigo); }
+.zt-report-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin: 16px 0 4px; padding: 11px; border-radius: 12px; border: 1px dashed var(--zt-border); background: transparent; color: var(--zt-text-dim); font-size: 13.5px; cursor: pointer; }
+.zt-report-btn:active { background: var(--zt-card-2); }
+.zt-report-btn ion-icon { font-size: 17px; }
 .zt-chat-foot { text-align: center; font-size: 11px; color: var(--zt-text-dim); padding: 6px 0 calc(6px + env(safe-area-inset-bottom)); background: var(--zt-card); }
 
 /* ════════ Campos de formulario en tarjetas — sin fondo gris (no parezca lleno) ════════ */

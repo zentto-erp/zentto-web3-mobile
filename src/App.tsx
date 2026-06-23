@@ -41,6 +41,7 @@ import RechargePage from './pages/RechargePage';
 import PaymentMethodsPage from './pages/PaymentMethodsPage';
 import AppSecurityPage from './pages/AppSecurityPage';
 import LegalPage from './pages/LegalPage';
+import AboutPage from './pages/AboutPage';
 
 function FullScreenLoader() {
   return (
@@ -130,6 +131,7 @@ export default function App() {
             <Route exact path="/security" component={SecurityPage} />
             <Route exact path="/payment-methods" component={PaymentMethodsPage} />
             <Route exact path="/app-security" component={AppSecurityPage} />
+            <Route exact path="/about" component={AboutPage} />
             <Route
               exact
               path="/legal/:slug"

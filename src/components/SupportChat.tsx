@@ -12,6 +12,7 @@ import {
   IonToolbar,
 } from '@ionic/react';
 import {
+  bugOutline,
   chatbubbleEllipsesOutline,
   chevronForward,
   close,
@@ -20,11 +21,13 @@ import {
   swapHorizontalOutline,
   walletOutline,
 } from 'ionicons/icons';
+import { Browser } from '@capacitor/browser';
 import { useEffect, useRef, useState } from 'react';
 
 import { tapLight } from '../lib/haptics';
 import { hideKeyboard } from '../lib/keyboard';
 import { loadHistory, saveHistory, streamSupport, type SupportMsg } from '../lib/support';
+import { bugReportUrl } from '../lib/legalContent';
 import { useAccountBalance, usePayments } from '../hooks/usePayments';
 import { formatAmount, formatDate, paymentTypeLabel } from '../lib/format';
 
@@ -142,6 +145,13 @@ export default function SupportChat() {
                 )}
 
                 <p className="zt-chat-hint">O pregúntame sobre tu cuenta, transferencias, P2P o KYC.</p>
+
+                <button
+                  className="zt-report-btn"
+                  onClick={() => Browser.open({ url: bugReportUrl('Zentto Web3', '0.1.0') })}
+                >
+                  <IonIcon icon={bugOutline} /> Reportar una falla
+                </button>
               </div>
             )}
             {msgs.map((m, i) => (
